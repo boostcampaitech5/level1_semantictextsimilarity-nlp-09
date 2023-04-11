@@ -1,5 +1,4 @@
-import argparse
-
+import argparse  # 파라미터 받기위한 라이브러리
 import pandas as pd
 
 from tqdm.auto import tqdm
@@ -7,7 +6,7 @@ from tqdm.auto import tqdm
 import transformers
 import torch
 import torchmetrics
-import pytorch_lightning as pl
+import pytorch_lightning as pl  # 파이토치 툴
 
 
 class Dataset(torch.utils.data.Dataset):
@@ -16,11 +15,12 @@ class Dataset(torch.utils.data.Dataset):
         self.targets = targets
 
     # 학습 및 추론 과정에서 데이터를 1개씩 꺼내오는 곳
-    def __getitem__(self, idx):
+    def __getitem__(self, idx):         # index로 데이터 불러오는 코드
         # 정답이 있다면 else문을, 없다면 if문을 수행합니다
         if len(self.targets) == 0:
             return torch.tensor(self.inputs[idx])
         else:
+            # 라벨링된 타겟 데이터가 있는 경우
             return torch.tensor(self.inputs[idx]), torch.tensor(self.targets[idx])
 
     # 입력하는 개수만큼 데이터를 사용합니다
@@ -31,42 +31,53 @@ class Dataset(torch.utils.data.Dataset):
 class Dataloader(pl.LightningDataModule):
     def __init__(self, model_name, batch_size, shuffle, train_path, dev_path, test_path, predict_path):
         super().__init__()
-        self.model_name = model_name
-        self.batch_size = batch_size
-        self.shuffle = shuffle
+        self.model_name = model_name    # 모델명
+        self.batch_size = batch_size    # 배치 사이즈
+        self.shuffle = shuffle          # dtype : bool
 
+        # 파일 경로
         self.train_path = train_path
         self.dev_path = dev_path
         self.test_path = test_path
         self.predict_path = predict_path
 
+        # 변수 선언만
         self.train_dataset = None
         self.val_dataset = None
         self.test_dataset = None
         self.predict_dataset = None
 
         self.tokenizer = transformers.AutoTokenizer.from_pretrained(
-            model_name, max_length=160)
-        self.target_columns = ['label']
-        self.delete_columns = ['id']
+            model_name, max_length=160)     # input이 160 토큰으로 길이 제한
+        self.target_columns = ['label']      # 정답 레이블이 있는 컬럼
+        self.delete_columns = ['id']         # 없앨 컬럼 (불필요한 컬럼)
+
+        # 텍스트 데이터가 있는 컬럼
         self.text_columns = ['sentence_1', 'sentence_2']
 
     def tokenizing(self, dataframe):
         data = []
+        '''
+            desc : tqdm 진행바의 이름
+            total : 전제 실행 횟수, 전체 반복량
+        '''
         for idx, item in tqdm(dataframe.iterrows(), desc='tokenizing', total=len(dataframe)):
             # 두 입력 문장을 [SEP] 토큰으로 이어붙여서 전처리합니다.
+            # 만약에 입력 문장을 수정할려면 이 부분을 수정해야 된다
             text = '[SEP]'.join([item[text_column]
                                 for text_column in self.text_columns])
             outputs = self.tokenizer(
                 text, add_special_tokens=True, padding='max_length', truncation=True)
+
             data.append(outputs['input_ids'])
         return data
 
     def preprocessing(self, data):
         # 안쓰는 컬럼을 삭제합니다.
-        data = data.drop(columns=self.delete_columns)
+        data = data.drop(columns=self.delete_columns)       # df.drop()
 
         # 타겟 데이터가 없으면 빈 배열을 리턴합니다.
+
         try:
             targets = data[self.target_columns].values.tolist()
         except:
@@ -76,7 +87,7 @@ class Dataloader(pl.LightningDataModule):
 
         return inputs, targets
 
-    def setup(self, stage='fit'):
+    def setup(self, stage='fit'):       # 데이터 불러오기
         if stage == 'fit':
             # 학습 데이터와 검증 데이터셋을 호출합니다
             train_data = pd.read_csv(self.train_path)
@@ -126,31 +137,32 @@ class Model(pl.LightningModule):
         self.plm = transformers.AutoModelForSequenceClassification.from_pretrained(
             pretrained_model_name_or_path=model_name, num_labels=1)
         # Loss 계산을 위해 사용될 L1Loss를 호출합니다.
-        self.loss_func = torch.nn.L1Loss()
+        self.loss_func = torch.nn.L1Loss()      # L1 loss로 설정됨
+        # self.loss_func = torch.nn.MSELoss()
 
-    def forward(self, x):
-        x = self.plm(x)['logits']
+    def forward(self, x):  # forward 함수
+        x = self.plm(x)['logits']  # 사전학습 모델에 입력에 대한 출력 중 'logits'에 해당하는 것을 추출
 
         return x
 
     def training_step(self, batch, batch_idx):
-        x, y = batch
-        logits = self(x)
-        loss = self.loss_func(logits, y.float())
-        self.log("train_loss", loss)
+        x, y = batch        # source와 target
+        logits = self(x)    # 순전파의 출력값
+        loss = self.loss_func(logits, y.float())    # 순전파의 출력값과 target의 loss 계산
+        self.log("train_loss", loss)    # loss값을 log로 기록
 
-        return loss
+        return loss         # loss값 출력
 
     def validation_step(self, batch, batch_idx):
-        x, y = batch
-        logits = self(x)
-        loss = self.loss_func(logits, y.float())
-        self.log("val_loss", loss)
+        x, y = batch        # batch에 source target 가져옵니다
+        logits = self(x)        # 예측 실행
+        loss = self.loss_func(logits, y.float())        # loss 계산
+        self.log("val_loss", loss)      # val_loss 저장 (로그)
 
-        self.log("val_pearson", torchmetrics.functional.pearson_corrcoef(
+        self.log("val_pearson", torchmetrics.functional.pearson_corrcoef(       # 피어 상관계수 저장
             logits.squeeze(), y.squeeze()))
 
-        return loss
+        return loss         # loss 반환
 
     def test_step(self, batch, batch_idx):
         x, y = batch
@@ -177,13 +189,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_name', default='klue/roberta-small', type=str)
     parser.add_argument('--batch_size', default=16, type=int)
-    parser.add_argument('--max_epoch', default=1, type=int)
+    parser.add_argument('--max_epoch', default=100, type=int)
     parser.add_argument('--shuffle', default=True)
     parser.add_argument('--learning_rate', default=1e-5, type=float)
-    parser.add_argument('--train_path', default='train.csv')
-    parser.add_argument('--dev_path', default='dev.csv')
-    parser.add_argument('--test_path', default='dev.csv')
-    parser.add_argument('--predict_path', default='test.csv')
+    parser.add_argument('--train_path', default='./data/train.csv')
+    parser.add_argument('--dev_path', default='./data/dev.csv')
+    parser.add_argument('--test_path', default='./data/dev.csv')
+    parser.add_argument('--predict_path', default='./data/test.csv')
     args = parser.parse_args(args=[])
 
     # dataloader와 model을 생성합니다.
@@ -191,9 +203,9 @@ if __name__ == '__main__':
                             args.test_path, args.predict_path)
     model = Model(args.model_name, args.learning_rate)
 
-    # gpu가 없으면 'gpus=0'을, gpu가 여러개면 'gpus=4'처럼 사용하실 gpu의 개수를 입력해주세요
+    # gpu가 없으면 accelerator='cpu', 있으면 accelerator='gpu'
     trainer = pl.Trainer(
-        gpus=1, max_epochs=args.max_epoch, log_every_n_steps=1)
+        accelerator='cpu', max_epochs=args.max_epoch, log_every_n_steps=1)
 
     # Train part
     trainer.fit(model=model, datamodule=dataloader)
