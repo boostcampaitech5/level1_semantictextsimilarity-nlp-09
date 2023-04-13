@@ -3,12 +3,14 @@ train :
   max_epoch : 1
   shuffle : True
   learning_rate : 1e-5
+  kfold : True
 
 inference :
   batch_size : 16
   max_epoch : 1
   shuffle : True
   learning_rate : 1e-5
+  kfold : True
 
 model : 
   name : 'klue/roberta-small'

@@ -84,7 +84,7 @@ class Dataloader(pl.LightningDataModule):
             
             # 학습데이터 준비
             test_inputs, test_targets = self.preprocessing(test_data)
-            predict_inputs, predict_targets = self.preprocessing(predict_data)
+            predict_inputs, _ = self.preprocessing(predict_data)
             
             # test, predict 데이터셋 가져옴
             self.test_dataset = Dataset(test_inputs, test_targets)

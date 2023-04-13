@@ -5,6 +5,7 @@ class Config():
         self.batch_size = int(cfg[opt]["batch_size"])
         self.max_epoch = int(cfg[opt]["max_epoch"])
         self.shuffle = bool(cfg[opt]["shuffle"])
+        self.kfold = bool(cfg[opt]["kfold"])
         self.learning_rate = float(cfg[opt]["learning_rate"])
         
         self.model_name = cfg["model"]["name"]
