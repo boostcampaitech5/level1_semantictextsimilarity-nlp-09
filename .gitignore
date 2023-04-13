@@ -1,5 +1,8 @@
 /code
+/__pycache__
 /.ipynb_checkpoints
+/lightning_logs
+/lightning_logs/*
 
 /*/.ipynb_checkpoints
 /*/__pycache__
