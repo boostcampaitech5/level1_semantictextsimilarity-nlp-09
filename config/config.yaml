@@ -13,7 +13,7 @@ inference :
   kfold : True
 
 model : 
-  name : 'klue/roberta-small'
+  name : 'klue/roberta-base'
   train_path : './data/train.csv'
   dev_path : './data/dev.csv'
   test_path : './data/dev.csv'

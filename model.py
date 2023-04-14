@@ -106,6 +106,7 @@ class KFoldDataloader(pl.LightningDataModule):
     def __init__(self, cfg, k: int = 1, split_seed: int = 974981, num_splits: int = 10):
         super().__init__()
         self.config = cfg
+        self.num_workers = 8
         
         self.k = k                      # 
         self.split_seed = split_seed    # 
