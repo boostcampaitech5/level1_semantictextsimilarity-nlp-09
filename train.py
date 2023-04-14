@@ -1,4 +1,11 @@
-import argparse  # 파라미터 받기위한 라이브러리
+# my_log
+import os
+import os.path
+import shutil
+from datetime import datetime
+# import argparse 사용 X
+import json
+
 import pandas as pd
 
 from tqdm.auto import tqdm
@@ -6,8 +13,12 @@ from tqdm.auto import tqdm
 import transformers
 import torch
 import torchmetrics
-import pytorch_lightning as pl  # 파이토치 툴
+import pytorch_lightning as pl
 
+## wandb
+import wandb
+from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.callbacks import EarlyStopping
 
 class Dataset(torch.utils.data.Dataset):
     def __init__(self, inputs, targets=[]):
@@ -15,12 +26,11 @@ class Dataset(torch.utils.data.Dataset):
         self.targets = targets
 
     # 학습 및 추론 과정에서 데이터를 1개씩 꺼내오는 곳
-    def __getitem__(self, idx):         # index로 데이터 불러오는 코드
+    def __getitem__(self, idx):
         # 정답이 있다면 else문을, 없다면 if문을 수행합니다
         if len(self.targets) == 0:
             return torch.tensor(self.inputs[idx])
         else:
-            # 라벨링된 타겟 데이터가 있는 경우
             return torch.tensor(self.inputs[idx]), torch.tensor(self.targets[idx])
 
     # 입력하는 개수만큼 데이터를 사용합니다
@@ -31,53 +41,39 @@ class Dataset(torch.utils.data.Dataset):
 class Dataloader(pl.LightningDataModule):
     def __init__(self, model_name, batch_size, shuffle, train_path, dev_path, test_path, predict_path):
         super().__init__()
-        self.model_name = model_name    # 모델명
-        self.batch_size = batch_size    # 배치 사이즈
-        self.shuffle = shuffle          # dtype : bool
+        self.model_name = model_name
+        self.batch_size = batch_size
+        self.shuffle = shuffle
 
-        # 파일 경로
         self.train_path = train_path
         self.dev_path = dev_path
         self.test_path = test_path
         self.predict_path = predict_path
 
-        # 변수 선언만
         self.train_dataset = None
         self.val_dataset = None
         self.test_dataset = None
         self.predict_dataset = None
 
-        self.tokenizer = transformers.AutoTokenizer.from_pretrained(
-            model_name, max_length=160)     # input이 160 토큰으로 길이 제한
-        self.target_columns = ['label']      # 정답 레이블이 있는 컬럼
-        self.delete_columns = ['id']         # 없앨 컬럼 (불필요한 컬럼)
-
-        # 텍스트 데이터가 있는 컬럼
+        self.tokenizer = transformers.AutoTokenizer.from_pretrained(model_name, max_length=160)
+        self.target_columns = ['label']
+        self.delete_columns = ['id']
         self.text_columns = ['sentence_1', 'sentence_2']
 
     def tokenizing(self, dataframe):
         data = []
-        '''
-            desc : tqdm 진행바의 이름
-            total : 전제 실행 횟수, 전체 반복량
-        '''
         for idx, item in tqdm(dataframe.iterrows(), desc='tokenizing', total=len(dataframe)):
             # 두 입력 문장을 [SEP] 토큰으로 이어붙여서 전처리합니다.
-            # 만약에 입력 문장을 수정할려면 이 부분을 수정해야 된다
-            text = '[SEP]'.join([item[text_column]
-                                for text_column in self.text_columns])
-            outputs = self.tokenizer(
-                text, add_special_tokens=True, padding='max_length', truncation=True)
-
+            text = '[SEP]'.join([item[text_column] for text_column in self.text_columns])
+            outputs = self.tokenizer(text, add_special_tokens=True, padding='max_length', truncation=True)
             data.append(outputs['input_ids'])
         return data
 
     def preprocessing(self, data):
         # 안쓰는 컬럼을 삭제합니다.
-        data = data.drop(columns=self.delete_columns)       # df.drop()
+        data = data.drop(columns=self.delete_columns)
 
         # 타겟 데이터가 없으면 빈 배열을 리턴합니다.
-
         try:
             targets = data[self.target_columns].values.tolist()
         except:
@@ -87,7 +83,7 @@ class Dataloader(pl.LightningDataModule):
 
         return inputs, targets
 
-    def setup(self, stage='fit'):       # 데이터 불러오기
+    def setup(self, stage='fit'):
         if stage == 'fit':
             # 학습 데이터와 검증 데이터셋을 호출합니다
             train_data = pd.read_csv(self.train_path)
@@ -110,10 +106,11 @@ class Dataloader(pl.LightningDataModule):
 
             predict_data = pd.read_csv(self.predict_path)
             predict_inputs, predict_targets = self.preprocessing(predict_data)
-            self.predict_dataset = Dataset(predict_inputs, [])
+            # self.predict_dataset = Dataset(predict_inputs, [])
+            self.predict_dataset = Dataset(predict_inputs, predict_targets)
 
     def train_dataloader(self):
-        return torch.utils.data.DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=args.shuffle)
+        return torch.utils.data.DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=parser['shuffle'])
 
     def val_dataloader(self):
         return torch.utils.data.DataLoader(self.val_dataset, batch_size=self.batch_size)
@@ -136,80 +133,154 @@ class Model(pl.LightningModule):
         # 사용할 모델을 호출합니다.
         self.plm = transformers.AutoModelForSequenceClassification.from_pretrained(
             pretrained_model_name_or_path=model_name, num_labels=1)
-        # Loss 계산을 위해 사용될 L1Loss를 호출합니다.
-        self.loss_func = torch.nn.L1Loss()      # L1 loss로 설정됨
-        # self.loss_func = torch.nn.MSELoss()
+        # Loss 계산을 위해 사용될 MSELoss를 호출합니다.
+        self.loss_func = torch.nn.MSELoss() ## 
 
-    def forward(self, x):  # forward 함수
-        x = self.plm(x)['logits']  # 사전학습 모델에 입력에 대한 출력 중 'logits'에 해당하는 것을 추출
+    def forward(self, x):
+        x = self.plm(x)['logits'] # [CLS] embedding vector를 반환
 
         return x
 
     def training_step(self, batch, batch_idx):
-        x, y = batch        # source와 target
-        logits = self(x)    # 순전파의 출력값
-        loss = self.loss_func(logits, y.float())    # 순전파의 출력값과 target의 loss 계산
-        self.log("train_loss", loss)    # loss값을 log로 기록
+        x, y = batch
+        logits = self(x)
+        loss = self.loss_func(logits, y.float())
+        self.log("train_loss", loss)
 
-        return loss         # loss값 출력
+        return loss
 
     def validation_step(self, batch, batch_idx):
-        x, y = batch        # batch에 source target 가져옵니다
-        logits = self(x)        # 예측 실행
-        loss = self.loss_func(logits, y.float())        # loss 계산
-        self.log("val_loss", loss)      # val_loss 저장 (로그)
+        x, y = batch
+        logits = self(x)
+        loss = self.loss_func(logits, y.float())
+        self.log("val_loss", loss)
 
-        self.log("val_pearson", torchmetrics.functional.pearson_corrcoef(       # 피어 상관계수 저장
-            logits.squeeze(), y.squeeze()))
+        self.log("val_pearson", torchmetrics.functional.pearson_corrcoef(logits.squeeze(), y.squeeze()))
 
-        return loss         # loss 반환
+        return loss
 
     def test_step(self, batch, batch_idx):
         x, y = batch
         logits = self(x)
 
-        self.log("test_pearson", torchmetrics.functional.pearson_corrcoef(
-            logits.squeeze(), y.squeeze()))
+        self.log("test_pearson", torchmetrics.functional.pearson_corrcoef(logits.squeeze(), y.squeeze()))
 
     def predict_step(self, batch, batch_idx):
-        x = batch
-        logits = self(x)
-
-        return logits.squeeze()
-
+            if len(batch) == 2:
+                x, y = batch
+                logits = self(x)
+                return logits
+            else:
+                x = batch
+                logits = self(x)
+                return logits.squeeze()
+            
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr)
         return optimizer
-
-
-if __name__ == '__main__':
-    # 하이퍼 파라미터 등 각종 설정값을 입력받습니다
-    # 터미널 실행 예시 : python3 run.py --batch_size=64 ...
-    # 실행 시 '--batch_size=64' 같은 인자를 입력하지 않으면 default 값이 기본으로 실행됩니다
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--model_name', default='klue/roberta-small', type=str)
-    parser.add_argument('--batch_size', default=16, type=int)
-    parser.add_argument('--max_epoch', default=100, type=int)
-    parser.add_argument('--shuffle', default=True)
-    parser.add_argument('--learning_rate', default=1e-5, type=float)
-    parser.add_argument('--train_path', default='./data/train.csv')
-    parser.add_argument('--dev_path', default='./data/dev.csv')
-    parser.add_argument('--test_path', default='./data/dev.csv')
-    parser.add_argument('--predict_path', default='./data/test.csv')
-    args = parser.parse_args(args=[])
+  
+## Sweep을 통해 실행될 학습 코드를 작성합니다.
+## Sweep을 사용하지 않아도, 돌아갈 학습 코드입니다.
+def sweep_main(config=None):
+    now = datetime.now() ## 시작 시간
+    ## my_log안에 날짜폴더를 생성, config.json파일을 복사
+    folder_name = now.strftime('%Y-%m-%d-%H:%M:%S')
+    folder_path = os.path.join(dir_path, folder_name)
+    os.mkdir(folder_path)
+    shutil.copyfile(os.path.join('code','config.json'), os.path.join(folder_path, 'config.json'))
+    
+    ## wandb 설정
+    wandb.init(project="boostcamp_STS", config=config, name = folder_name)
+    wandb_logger = WandbLogger(project="boostcamp_STS", name = folder_name) ## 실험 이름을 날짜로 지정 (my_log폴더의 날짜와 동일)
+    early_stopping = EarlyStopping(monitor = 'val_loss', patience=3, mode='min')
+    if config != None:
+        config = wandb.config
 
     # dataloader와 model을 생성합니다.
-    dataloader = Dataloader(args.model_name, args.batch_size, args.shuffle, args.train_path, args.dev_path,
-                            args.test_path, args.predict_path)
-    model = Model(args.model_name, args.learning_rate)
+    ## 주의, sweep을 사용한다면, 해당하는 부분을 parser -> config로 바꿔 주셔야 합니다!
+    ## ex) lr을 하이퍼 파라미터 튜닝을 한다면, parser['learning_rate] -> config.lr
+    dataloader = Dataloader(parser['model_name'], parser['batch_size'], parser['shuffle'], parser['train_path'], parser['dev_path'], parser['test_path'], parser['predict_path'])
+    # test_path로 예측이 틀린 Data확인하기 위함
+    dataloader_for_test = Dataloader(parser['model_name'], parser['batch_size'], parser['shuffle'], parser['train_path'], parser['dev_path'], parser['test_path'], parser['test_path'])
+    model = Model(parser['model_name'], parser['learning_rate'])
+    if config==None:
+        model.log("batch_size", parser['batch_size'])
+    else:
+        model.log("batch_size", config.batch_size)
 
     # gpu가 없으면 accelerator='cpu', 있으면 accelerator='gpu'
-    trainer = pl.Trainer(
-        accelerator='cpu', max_epochs=args.max_epoch, log_every_n_steps=1)
-
+    trainer = pl.Trainer(accelerator='gpu', max_epochs=parser['max_epoch'], log_every_n_steps=1, logger=wandb_logger, callbacks =[early_stopping], default_root_dir=folder_path)
+    
     # Train part
     trainer.fit(model=model, datamodule=dataloader)
     trainer.test(model=model, datamodule=dataloader)
-
+    ## 배치로 구성된 예측값을 합칩니다.
+    results = trainer.predict(model=model, datamodule=dataloader_for_test)
+    test_pred = torch.cat(results)
+    wrongs = []
+    for i, pred in enumerate(test_pred):
+        # test dataset에서 i번째에 해당하는 input값과 target값을 가져옵니다
+        input_ids, target = dataloader_for_test.predict_dataset.__getitem__(i)
+        # 예측값과 정답값이 다를 경우 기록합니다.
+        if round(pred.item()) != target.item():
+            wrongs.append([dataloader_for_test.tokenizer.decode(input_ids).replace(' [PAD]', ''), max(0.0, round(float(pred.item()))), target.item()])
+    wrong_df = pd.DataFrame(wrongs, columns=['text', 'pred', 'target'])
+    wrong_df.to_csv(os.path.join(folder_path, 'wrong.csv'))
+    
     # 학습이 완료된 모델을 저장합니다.
-    torch.save(model, 'model.pt')
+    ## my_log 안에 날짜 폴더에 모델을 저장
+    model_path = os.path.join(folder_path, 'model.pt')
+    torch.save(model, model_path)
+    
+    # Inference part
+    # 저장된 모델로 예측을 진행합니다.
+    model = torch.load(model_path)
+    predictions = trainer.predict(model=model, datamodule=dataloader)
+
+    # 예측된 결과를 형식에 맞게 반올림하여 준비합니다.
+    ## 예측된 결과에서 음수값이 발생하는것을 확인, 최솟값을 0으로 설정합니다.
+    predictions = list(max(0.0, round(float(i), 1)) for i in torch.cat(predictions))
+
+    # output 형식을 불러와서 예측된 결과로 바꿔주고, output.csv로 출력합니다.
+    ## output.csv는, my_log 안에 날짜 폴더에 저장됩니다.
+    output = pd.read_csv('./data/sample_submission.csv')
+    output['target'] = predictions
+    output.to_csv(os.path.join(folder_path, 'output.csv'), index=False) #
+
+if __name__ == '__main__':
+    ## code/config.json 파일을 수정해 주세요
+    ## code/config.json에서 파라미터 정보를 가져옵니다.
+    with open('./code/config.json') as f:
+        parser = json.load(f)
+    
+    ## my_log 폴더를 생성하는 코드
+    dir_path = "my_log"
+    if not os.path.isdir(dir_path):
+        os.mkdir("my_log")
+    
+    ## config.json의 sweep항목을 0이라고 설정하는경우, sweep을 사용하지 않습니다!
+    if parser['sweep'] == 0:
+        sweep_main()
+    else:
+        ## sweep_config['metric'] = {'name':'val_pearson', 'goal':'maximize'}  # pearson 점수가 최대화가 되는 방향으로 학습을 진행합니다. (미션2)
+        sweep_config = { 
+            "method" : "random",
+            "metric": {
+                "goal": "minimize", 
+                "name": "val_loss"
+            },
+            "parameters" : {
+                "batch_size": {"values": [8, 16, 32]}
+            }
+        }
+            
+        sweep_id = wandb.sweep(
+            sweep=sweep_config,     # config 딕셔너리를 추가합니다.
+            project='boostcamp_STS'  # project의 이름을 추가합니다.
+        )
+        wandb.agent(
+            sweep_id=sweep_id,      # sweep의 정보를 입력하고
+            function=sweep_main,    # 해당 코드를
+            project='boostcamp_STS',
+            count=3                 # 총 3회 실행해봅니다.
+        )
