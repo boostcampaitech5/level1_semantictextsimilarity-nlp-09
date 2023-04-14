@@ -2,6 +2,7 @@ import pandas as pd
 import transformers
 import torch
 import pytorch_lightning as pl  # 파이토치 툴
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping        # Early Stopping
 
 from model import Dataloader, Dataset, KFoldDataloader, Model
 
@@ -25,9 +26,17 @@ def kfold_train(cfg):
 
     results = []
     # K fold 횟수 3
-    nums_folds = 3
+    nums_folds = 5
     split_seed = 974981
-
+    
+    early_stopping_callback = EarlyStopping(
+        monitor='train_loss',  # the metric to monitor for early stopping
+        min_delta=0.1,  # minimum change in the monitored metric to qualify as improvement
+        patience=3,  # number of epochs to wait for improvement before stopping
+        verbose=False,  # whether to print early stopping information
+        mode='min'  # the direction of the monitored metric to consider as improvement
+    )
+    
     # nums_folds는 fold의 개수, k는 k번째 fold datamodule
     for k in range(nums_folds):
         print("="*20,k+1,"/",nums_folds,"="*20, sep="\t")
@@ -36,9 +45,9 @@ def kfold_train(cfg):
         datamodule.prepare_data()
         datamodule.setup()
 
-        trainer = pl.Trainer(max_epochs=cfg.max_epoch)
+        trainer = pl.Trainer(max_epochs=cfg.max_epoch, callbacks=[early_stopping_callback], accelerator='gpu', log_every_n_steps=1)
         trainer.fit(model=Kmodel, datamodule=datamodule)
+        trainer.test(model=Kmodel, datamodule=datamodule)
         
-    trainer.test(model=Kmodel, datamodule=datamodule)
     # 학습이 완료된 모델을 저장합니다.
     torch.save(Kmodel, 'kfold_model.pt')
