@@ -3,7 +3,6 @@ train :
     max_epoch : 100
     shuffle : True
     learning_rate : 1e-5
-    kfold : True
     sweep : False
 
 inference :
@@ -11,7 +10,6 @@ inference :
     max_epoch : 100
     shuffle : True
     learning_rate : 1e-5
-    kfold : True
     sweep : False
 
 model : 
