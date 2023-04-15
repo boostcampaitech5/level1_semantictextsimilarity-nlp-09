@@ -1,6 +1,13 @@
 /.ipynb_checkpoints
 /__pycache__
 /lightning_logs
+/wandb
+/boostcamp_STS/*
 
 */.ipynb_checkpoints
 */__pycache__
+
+# my_log에 있는 파일을 관리하지 않음
+/my_log/*
+
+*.csv
