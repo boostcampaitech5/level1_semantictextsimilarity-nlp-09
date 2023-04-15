@@ -28,26 +28,27 @@ if __name__ == '__main__':
         
         wandb_logger, sweep_config = sweep_main(folder_name)
         base_train(train_config, sweep_config, wandb_logger)
-    else:
-        ## sweep_config['metric'] = {'name':'val_pearson', 'goal':'maximize'}  # pearson 점수가 최대화가 되는 방향으로 학습을 진행합니다. (미션2)
-        # sweep_config = { 
-        #     "method" : "random",
-        #     "metric": {
-        #         "goal": "minimize", 
-        #         "name": "val_loss"
-        #     },
-        #     "parameters" : {
-        #         "batch_size": {"values": [8, 16, 32]}
-        #     }
-        # }
+        base_inference(inference_config, sweep_config, wandb_logger)
+#     else:
+#         ## sweep_config['metric'] = {'name':'val_pearson', 'goal':'maximize'}  # pearson 점수가 최대화가 되는 방향으로 학습을 진행합니다. (미션2)
+#         # sweep_config = { 
+#         #     "method" : "random",
+#         #     "metric": {
+#         #         "goal": "minimize", 
+#         #         "name": "val_loss"
+#         #     },
+#         #     "parameters" : {
+#         #         "batch_size": {"values": [8, 16, 32]}
+#         #     }
+#         # }
             
-        sweep_id = wandb.sweep(
-            sweep=sweep_config,     # config 딕셔너리를 추가합니다.
-            project='boostcamp_STS'  # project의 이름을 추가합니다.
-        )
-        wandb.agent(
-            sweep_id=sweep_id,      # sweep의 정보를 입력하고
-            function=sweep_main,    # 해당 코드를
-            project='boostcamp_STS',
-            count=3                 # 총 3회 실행해봅니다.
-        )
+#         sweep_id = wandb.sweep(
+#             sweep=sweep_config,     # config 딕셔너리를 추가합니다.
+#             project='boostcamp_STS'  # project의 이름을 추가합니다.
+#         )
+#         wandb.agent(
+#             sweep_id=sweep_id,      # sweep의 정보를 입력하고
+#             function=sweep_main,    # 해당 코드를
+#             project='boostcamp_STS',
+#             count=3                 # 총 3회 실행해봅니다.
+#         )
