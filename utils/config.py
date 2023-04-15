@@ -14,7 +14,7 @@ class Config():
         self.test_path = cfg["model"]["test_path"]
         self.predict_path = cfg["model"]["predict_path"]
         
-    def set_folder_dir(folder_dir):
+    def set_folder_dir(self, folder_dir):
         self.folder_dir = folder_dir
         
 def load_config(config_file):
