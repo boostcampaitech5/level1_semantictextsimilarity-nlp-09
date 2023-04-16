@@ -1,4 +1,5 @@
 import yaml
+import wandb
 
 class Config():
     def __init__(self, cfg, opt):
@@ -22,3 +23,9 @@ def load_config(config_file):
         config = yaml.safe_load(file)
 
     return Config(config, "train"), Config(config, "inference")
+
+def load_wandb_config(config_file):
+    with open(config_file) as file:
+        config = yaml.safe_load(file)
+
+    wandb.config.update(config)
