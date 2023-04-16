@@ -9,6 +9,7 @@ train :
     dev_path: "./data/dev.csv"
     test_path: "./data/dev.csv"
     predict_path: "./data/dev.csv"
+    sweep : True
 
 inference :
     batch_size : 16
@@ -22,3 +23,4 @@ inference :
     test_path: "./data/dev.csv"
     predict_path: "./data/test.csv"
     
+    sweep : False

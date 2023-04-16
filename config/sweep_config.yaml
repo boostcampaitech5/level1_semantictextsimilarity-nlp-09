@@ -1,0 +1,22 @@
+method : 'random'
+metric : 
+  goal : 'minimize'
+  name : 'val_loss'
+parameters : 
+  batch_size : 
+    values :
+      - 8
+      - 16
+  max_epoch : 
+    values :
+      - 30
+  learning_rate : 
+    distribution: "uniform"  
+    min : 1e-6      
+    max : 1e-5
+  shuffle : 
+    values : 
+      - True
+  sweep : 
+    values : 
+      - True
