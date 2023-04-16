@@ -9,19 +9,28 @@ from pytorch_lightning.callbacks import EarlyStopping
 
 from model import Dataloader, Dataset, Model
 from constants import CONFIG
+from constants import WANDB
+from utils.config import load_sweep_config
+from utils.log import make_log_dirs
 from utils.wandb import *
 
-
-def base_train(train_config, folder_name):
+def sweep_train():
     # wandb 시작
-    wandb_logger, _ = sweep_main(folder_name)
+    wandb_logger, sweep_config = sweep_main(CONFIG.LOGDIR_NAME)
+
+    # config 초기화
+    sweep_config = wandb.config 
+    train_config = load_sweep_config(
+        {'parameters': sweep_config}, "parameters", CONFIG.MODEL_PATH)
+    train_config.set_folder_dir(make_log_dirs(CONFIG.LOGDIR_NAME))
 
     # dataloader와 model을 생성합니다.
-    # 주의, sweep을 사용한다면, 해당하는 부분을 parser -> config로 바꿔 주셔야 합니다! ex) lr을 하이퍼 파라미터 튜닝을 한다면, parser['learning_rate] -> config.lr
+    ## 주의, sweep을 사용한다면, 해당하는 부분을 parser -> config로 바꿔 주셔야 합니다! ex) lr을 하이퍼 파라미터 튜닝을 한다면, parser['learning_rate] -> config.lr
     dataloader = Dataloader(train_config)
     model = Model(train_config)
     
-    model.log("batch_size", train_config.batch_size)
+    # log에 batch_size 기록
+    model.log("batch_size", sweep_config.batch_size)
 
     # gpu가 없으면 accelerator='cpu', 있으면 accelerator='gpu'
     early_stopping = EarlyStopping(monitor = 'val_loss', patience=3, mode='min')
