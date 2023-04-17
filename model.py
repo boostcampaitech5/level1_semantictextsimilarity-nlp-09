@@ -96,7 +96,9 @@ class Dataloader(pl.LightningDataModule):
             predict_inputs, predict_targets = self.preprocessing(predict_data)
 
             self.test_dataset = Dataset(test_inputs, test_targets)
-            self.predict_dataset = Dataset(predict_inputs, [])
+            # self.predict_dataset = Dataset(predict_inputs, [])
+            self.predict_dataset = Dataset(
+                predict_inputs, predict_targets)     # 어차피 비어있으면 빈 배열이 리턴됨
 
     def train_dataloader(self):
         return torch.utils.data.DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=self.shuffle)
