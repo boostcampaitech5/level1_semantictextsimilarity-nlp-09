@@ -27,5 +27,6 @@ def load_config(config_file):
     return Config(config, "train"), Config(config, "inference")
 
 
+# import omegaconf
 def load_omegaconf():
     return OmegaConf.load(CONFIG.CONFIG_PATH)
