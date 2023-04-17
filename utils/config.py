@@ -8,6 +8,7 @@ class Config():
         self.shuffle = bool(cfg[opt]["shuffle"])
         self.learning_rate = float(cfg[opt]["learning_rate"])
         self.sweep = bool(cfg[opt]["sweep"])
+        self.loss = cfg[opt]["loss"]
 
         self.model_name = cfg[opt]["name"]
         self.train_path = cfg[opt]["train_path"]
