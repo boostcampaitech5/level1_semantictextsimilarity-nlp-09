@@ -1,7 +1,4 @@
 import os
-import yaml
-import wandb
-
 from constants import CONFIG
 from constants import WANDB
 
@@ -13,12 +10,11 @@ from utils.config import load_config, load_omegaconf
 from utils.wandb import *
 
 if __name__ == '__main__':
-    ## config/config.yaml에서 파라미터 정보를 가져옵니다.
-    train_config = load_config(CONFIG.CONFIG_PATH, "train", CONFIG.MODEL_PATH)
-    inference_config = load_config(
-        CONFIG.CONFIG_PATH, "inference", CONFIG.MODEL_PATH)
-    
-    ## my_log 폴더를 생성하는 코드
+    # config/config.yaml에서 파라미터 정보를 가져옵니다.
+    # train_config, inference_config = load_config(CONFIG.CONFIG_PATH)
+    config = load_omegaconf()
+
+    # my_log 폴더를 생성하는 코드
     if not os.path.isdir(CONFIG.LOGDIR_PATH):
         os.mkdir(CONFIG.LOGDIR_NAME)
 
@@ -33,14 +29,17 @@ if __name__ == '__main__':
         folder_name = make_log_dirs(CONFIG.LOGDIR_NAME)
         
         # config에 my_log 폴더 경로 기록
-        train_config.set_folder_dir(folder_name)
-        inference_config.set_folder_dir(folder_name)
+        config.folder_dir = folder_name
+        # train_config.set_folder_dir(folder_name)
+        # inference_config.set_folder_dir(folder_name)
+
+        base_train(config)
+
+        # wandb_logger, sweep_config = sweep_main(folder_name)
+        # base_train(config, sweep_config, wandb_logger)
+        # base_inference(config)
+
         
-        wandb_logger, sweep_config = sweep_main(folder_name)
-        base_train(train_config, sweep_config, wandb_logger)
-        base_inference(inference_config)
-        
-        wandb.finish()
 #     else:
 #         ## sweep_config['metric'] = {'name':'val_pearson', 'goal':'maximize'}  # pearson 점수가 최대화가 되는 방향으로 학습을 진행합니다. (미션2)
 #         # sweep_config = { 
