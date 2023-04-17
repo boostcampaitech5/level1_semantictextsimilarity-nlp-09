@@ -42,9 +42,9 @@ def base_train(train_config, folder_name):
         # test dataset에서 i번째에 해당하는 input값과 target값을 가져옵니다
         input_ids, target = dataloader.predict_dataset.__getitem__(i)
         # 예측값과 정답값이 크게 다를 경우 기록합니다.
-        if abs(pred.item()-target.item()) > 1.0:
+        if round(pred.item(),1) != round(target.item(), 1):
             wrongs.append([dataloader.tokenizer.decode(input_ids).replace(
-                '[PAD]', '').strip(),  pred.item(), target.item()])
+                '[PAD]', '').strip(),  round(pred.item(),1), round(target.item(), 1)])
     wrong_df = pd.DataFrame(wrongs, columns=['text', 'pred', 'target'])
     wrong_df.to_csv(os.path.join(train_config.folder_dir, 'wrong.csv'))
 
