@@ -4,6 +4,7 @@ import torch
 import pytorch_lightning as pl
 
 from constants import CONFIG
+from model import Dataloader, Model
 
 def base_inference(inference_config):
     # 하이퍼 파라미터 등 각종 설정값을 입력받습니다
@@ -12,9 +13,10 @@ def base_inference(inference_config):
 
     # dataloader와 model을 생성합니다.
     dataloader = Dataloader(inference_config)
+    model = Model(inference_config)
 
     # gpu가 없으면 'gpus=0'을, gpu가 여러개면 'gpus=4'처럼 사용하실 gpu의 개수를 입력해주세요
-    trainer = pl.Trainer(gpus=1, max_epochs=inference_config.max_epoch, log_every_n_steps=1)
+    trainer = pl.Trainer(accelerator='gpu', max_epochs=inference_config.max_epoch, log_every_n_steps=1)
 
     # Inference part
     # 저장된 모델로 예측을 진행합니다.
