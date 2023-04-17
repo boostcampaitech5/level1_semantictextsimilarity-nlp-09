@@ -1,9 +1,10 @@
 train :
     batch_size : 16
-    max_epoch : 1
+    max_epoch : 10
     shuffle : True
     learning_rate : 1e-5
     sweep : False
+    loss : "MSE"
     name: "klue/roberta-small"
     train_path: "./data/train.csv"
     dev_path: "./data/dev.csv"
@@ -12,10 +13,11 @@ train :
 
 inference :
     batch_size : 16
-    max_epoch : 1
+    max_epoch : 10
     shuffle : True
     learning_rate : 1e-5
     sweep : False
+    loss : "MSE"
     name: "klue/roberta-small"
     train_path: "./data/train.csv"
     dev_path: "./data/dev.csv"
