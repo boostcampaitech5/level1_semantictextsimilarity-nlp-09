@@ -4,6 +4,9 @@ train :
     shuffle : True
     learning_rate : 1e-5
     sweep : True
+    num_workers : 8
+    hidden_dropout_prob : 0.0
+    attention_probs_dropout_prob: 0.0
 
 inference :
     batch_size : 16
@@ -11,3 +14,6 @@ inference :
     shuffle : True
     learning_rate : 1e-5
     sweep : False
+    num_workers : 8
+    hidden_dropout_prob : 0.0
+    attention_probs_dropout_prob: 0.0

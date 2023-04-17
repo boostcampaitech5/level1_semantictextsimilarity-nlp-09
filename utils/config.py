@@ -7,8 +7,14 @@ class Config():
         self.shuffle = bool(cfg[opt]["shuffle"])
         self.learning_rate = float(cfg[opt]["learning_rate"])
         self.sweep = bool(cfg[opt]["sweep"])
+        self.num_workers = int(cfg[opt]["num_workers"])
+        self.hidden_dropout_prob = float(cfg[opt]["hidden_dropout_prob"])
+        self.attention_probs_dropout_prob = float(
+            cfg[opt]["attention_probs_dropout_prob"])
         
         self.model_name = model_dir["model"]["name"]
+        # self.model_name = str(cfg[opt]["model"])
+
         self.train_path = model_dir["model"]["train_path"]
         self.dev_path = model_dir["model"]["dev_path"]
         self.test_path = model_dir["model"]["test_path"]
