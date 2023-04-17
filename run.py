@@ -1,4 +1,6 @@
-import os
+import os, random
+import numpy as np
+import torch
 from constants import CONFIG
 
 from train import base_train
@@ -11,6 +13,15 @@ if __name__ == '__main__':
     # config/config.yaml에서 파라미터 정보를 가져옵니다.
     # train_config, inference_config = load_config(CONFIG.CONFIG_PATH)
     config = load_omegaconf()
+    
+    # torch, np 설정
+    SEED = config.seed
+    random.seed(SEED)
+    np.random.seed(SEED)
+    torch.manual_seed(SEED)
+    torch.cuda.manual_seed_all(SEED)
+    torch.backends.cudnn.benchmark = False
+    torch.use_deterministic_algorithms(True)   
 
     # my_log 폴더를 생성하는 코드
     if not os.path.isdir(CONFIG.LOGDIR_PATH):
@@ -22,17 +33,11 @@ if __name__ == '__main__':
 
         # config에 my_log 폴더 경로 기록
         config.folder_dir = folder_name
-        # train_config.set_folder_dir(folder_name)
-        # inference_config.set_folder_dir(folder_name)
 
-        base_train(config)
-
-        # wandb_logger, sweep_config = sweep_main(folder_name)
-        # base_train(config, sweep_config, wandb_logger)
-        # base_inference(config)
-
+        wandb_logger, sweep_config = sweep_main(folder_name)
+        base_train(config, sweep_config, wandb_logger)
+        base_inference(config)
         
-        wandb.finish()
 #     else:
 #         ## sweep_config['metric'] = {'name':'val_pearson', 'goal':'maximize'}  # pearson 점수가 최대화가 되는 방향으로 학습을 진행합니다. (미션2)
 #         # sweep_config = {
