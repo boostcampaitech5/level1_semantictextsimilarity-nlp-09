@@ -125,7 +125,7 @@ class Model(pl.LightningModule):
         self.plm = transformers.AutoModelForSequenceClassification.from_pretrained(
             pretrained_model_name_or_path=config.model_name, num_labels=1)
         # Loss 계산을 위해 사용될 MSELoss를 호출합니다.
-        self.loss_func = torch.nn.MSELoss()
+        self.loss_func = self.get_loss_function(config.loss)
 
     def forward(self, x):
         x = self.plm(x)['logits']  # [CLS] embedding vector를 반환
@@ -174,3 +174,9 @@ class Model(pl.LightningModule):
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr)
         return optimizer
+
+    def get_loss_function(self, tag):
+        if tag == "MSE":
+            return torch.nn.MSELoss()
+        elif tag == "L1":
+            return torch.nn.L1Loss()
