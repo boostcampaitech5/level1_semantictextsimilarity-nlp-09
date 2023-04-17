@@ -27,17 +27,17 @@ class Dataset(torch.utils.data.Dataset):
 
 
 class Dataloader(pl.LightningDataModule):
-    def __init__(self, config):
+    def __init__(self, model_name, batch_size, shuffle, train_path, dev_path, test_path, predict_path):
         super().__init__()
         self.model_name = config.model_name
         self.batch_size = config.batch_size
         self.shuffle = config.shuffle
         self.num_workers = config.num_workers
 
-        self.train_path = config.train_path
-        self.dev_path = config.dev_path
-        self.test_path = config.test_path
-        self.predict_path = config.predict_path
+        self.train_path = train_path
+        self.dev_path = dev_path
+        self.test_path = test_path
+        self.predict_path = predict_path
 
         self.train_dataset = None
         self.val_dataset = None
@@ -45,7 +45,7 @@ class Dataloader(pl.LightningDataModule):
         self.predict_dataset = None
 
         self.tokenizer = transformers.AutoTokenizer.from_pretrained(
-            config.model_name, max_length=160)
+            model_name, max_length=128)
         self.target_columns = ['label']
         self.delete_columns = ['id']
         self.text_columns = ['sentence_1', 'sentence_2']
@@ -115,12 +115,12 @@ class Dataloader(pl.LightningDataModule):
 
 
 class Model(pl.LightningModule):
-    def __init__(self, config):
+    def __init__(self, model_name, learning_rate):
         super().__init__()
         self.save_hyperparameters()
 
-        self.model_name = config.model_name
-        self.lr = config.learning_rate
+        self.model_name = model_name
+        self.lr = learning_rate
 
         self.hidden_dropout_prob = config.hidden_dropout_prob
         self.attention_probs_dropout_prob = config.attention_probs_dropout_prob
