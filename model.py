@@ -7,6 +7,7 @@ import torch
 import torchmetrics
 import pytorch_lightning as pl
 
+
 class Dataset(torch.utils.data.Dataset):
     def __init__(self, inputs, targets=[]):
         self.inputs = inputs
@@ -42,7 +43,8 @@ class Dataloader(pl.LightningDataModule):
         self.test_dataset = None
         self.predict_dataset = None
 
-        self.tokenizer = transformers.AutoTokenizer.from_pretrained(config.model_name, max_length=160)
+        self.tokenizer = transformers.AutoTokenizer.from_pretrained(
+            config.model_name, max_length=160)
         self.target_columns = ['label']
         self.delete_columns = ['id']
         self.text_columns = ['sentence_1', 'sentence_2']
@@ -51,8 +53,10 @@ class Dataloader(pl.LightningDataModule):
         data = []
         for idx, item in tqdm(dataframe.iterrows(), desc='tokenizing', total=len(dataframe)):
             # 두 입력 문장을 [SEP] 토큰으로 이어붙여서 전처리합니다.
-            text = '[SEP]'.join([item[text_column] for text_column in self.text_columns])
-            outputs = self.tokenizer(text, add_special_tokens=True, padding='max_length', truncation=True)
+            text = '[SEP]'.join([item[text_column]
+                                for text_column in self.text_columns])
+            outputs = self.tokenizer(
+                text, add_special_tokens=True, padding='max_length', truncation=True)
             data.append(outputs['input_ids'])
         return data
 
@@ -87,12 +91,14 @@ class Dataloader(pl.LightningDataModule):
             # 평가데이터 준비
             test_data = pd.read_csv(self.test_path)
             predict_data = pd.read_csv(self.predict_path)
-            
+
             test_inputs, test_targets = self.preprocessing(test_data)
             predict_inputs, predict_targets = self.preprocessing(predict_data)
-            
+
             self.test_dataset = Dataset(test_inputs, test_targets)
-            self.predict_dataset = Dataset(predict_inputs, [])
+            # self.predict_dataset = Dataset(predict_inputs, [])
+            self.predict_dataset = Dataset(
+                predict_inputs, predict_targets)     # 어차피 비어있으면 빈 배열이 리턴됨
 
     def train_dataloader(self):
         return torch.utils.data.DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=self.shuffle)
@@ -119,18 +125,18 @@ class Model(pl.LightningModule):
         self.plm = transformers.AutoModelForSequenceClassification.from_pretrained(
             pretrained_model_name_or_path=config.model_name, num_labels=1)
         # Loss 계산을 위해 사용될 MSELoss를 호출합니다.
-        self.loss_func = torch.nn.MSELoss() ##
+        self.loss_func = torch.nn.MSELoss()
 
     def forward(self, x):
-        x = self.plm(x)['logits'] # [CLS] embedding vector를 반환
-        
+        x = self.plm(x)['logits']  # [CLS] embedding vector를 반환
+
         return x
 
     def training_step(self, batch, batch_idx):
         x, y = batch
         logits = self(x)
         loss = self.loss_func(logits, y.float())
-        
+
         self.log("train_loss", loss)
 
         return loss
@@ -139,9 +145,10 @@ class Model(pl.LightningModule):
         x, y = batch
         logits = self(x)
         loss = self.loss_func(logits, y.float())
-        
+
         self.log("val_loss", loss)
-        self.log("val_pearson", torchmetrics.functional.pearson_corrcoef(logits.squeeze(), y.squeeze()))
+        self.log("val_pearson", torchmetrics.functional.pearson_corrcoef(
+            logits.squeeze(), y.squeeze()))
 
         return loss
 
@@ -149,16 +156,21 @@ class Model(pl.LightningModule):
         x, y = batch
         logits = self(x)
 
-        self.log("test_pearson", torchmetrics.functional.pearson_corrcoef(logits.squeeze(), y.squeeze()))
-        
+        self.log("test_pearson", torchmetrics.functional.pearson_corrcoef(
+            logits.squeeze(), y.squeeze()))
+
         return logits
 
     def predict_step(self, batch, batch_idx):
-        x = batch
-        logits = self(x)
-        
-        return logits.squeeze()
-            
+        if len(batch) == 2:
+            x, _ = batch        # 기존 x, y에서 y는 사용하지 않아 무시처리 하였습니다.
+            logits = self(x)
+            return logits
+        else:
+            x = batch
+            logits = self(x)
+            return logits.squeeze()
+
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr)
         return optimizer
