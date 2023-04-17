@@ -22,13 +22,17 @@ if __name__ == '__main__':
 
         # config에 my_log 폴더 경로 기록
         config.folder_dir = folder_name
+        # train_config.set_folder_dir(folder_name)
+        # inference_config.set_folder_dir(folder_name)
 
         base_train(config)
 
         # wandb_logger, sweep_config = sweep_main(folder_name)
         # base_train(config, sweep_config, wandb_logger)
-        # base_inference(config, sweep_config, wandb_logger)
+        # base_inference(config)
 
+        
+        wandb.finish()
 #     else:
 #         ## sweep_config['metric'] = {'name':'val_pearson', 'goal':'maximize'}  # pearson 점수가 최대화가 되는 방향으로 학습을 진행합니다. (미션2)
 #         # sweep_config = {
