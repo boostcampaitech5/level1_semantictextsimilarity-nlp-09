@@ -23,7 +23,7 @@ def sweep_train():
     train_config = load_sweep_config(
         {'parameters': sweep_config}, "parameters", CONFIG.MODEL_PATH)
     train_config.set_folder_dir(make_log_dirs(CONFIG.LOGDIR_NAME))
-
+    
     # dataloader와 model을 생성합니다.
     ## 주의, sweep을 사용한다면, 해당하는 부분을 parser -> config로 바꿔 주셔야 합니다! ex) lr을 하이퍼 파라미터 튜닝을 한다면, parser['learning_rate] -> config.lr
     dataloader = Dataloader(train_config)

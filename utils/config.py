@@ -7,13 +7,19 @@ class Config():
         self.shuffle = bool(cfg[opt]["shuffle"])
         self.learning_rate = float(cfg[opt]["learning_rate"])
         self.sweep = bool(cfg[opt]["sweep"])
+        self.num_workers = int(cfg[opt]["num_workers"])
+        self.hidden_dropout_prob = float(cfg[opt]["hidden_dropout_prob"])
+        self.attention_probs_dropout_prob = float(
+            cfg[opt]["attention_probs_dropout_prob"])
+        
+        self.model_name = model_dir["model"]["name"]
+        # self.model_name = str(cfg[opt]["model"])
 
-        self.model_name = cfg[opt]["name"]
-        self.train_path = cfg[opt]["train_path"]
-        self.dev_path = cfg[opt]["dev_path"]
-        self.test_path = cfg[opt]["test_path"]
-        self.predict_path = cfg[opt]["predict_path"]
-
+        self.train_path = model_dir["model"]["train_path"]
+        self.dev_path = model_dir["model"]["dev_path"]
+        self.test_path = model_dir["model"]["test_path"]
+        self.predict_path = model_dir["model"]["predict_path"]
+        
     def set_folder_dir(self, folder_dir):
         self.folder_dir = folder_dir
         
