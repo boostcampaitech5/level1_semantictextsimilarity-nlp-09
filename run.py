@@ -28,7 +28,9 @@ if __name__ == '__main__':
         
         wandb_logger, sweep_config = sweep_main(folder_name)
         base_train(train_config, sweep_config, wandb_logger)
-        base_inference(inference_config, sweep_config, wandb_logger)
+        base_inference(inference_config)
+        
+        wandb.finish()
 #     else:
 #         ## sweep_config['metric'] = {'name':'val_pearson', 'goal':'maximize'}  # pearson 점수가 최대화가 되는 방향으로 학습을 진행합니다. (미션2)
 #         # sweep_config = { 
