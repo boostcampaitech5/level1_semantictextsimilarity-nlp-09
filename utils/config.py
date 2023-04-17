@@ -39,3 +39,7 @@ def load_sweep_config(config, opt, model):
         model_dir = yaml.safe_load(file)
 
     return Config(config, opt, model_dir)
+
+# import omegaconf
+def load_omegaconf():
+    return OmegaConf.load(CONFIG.CONFIG_PATH)
