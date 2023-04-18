@@ -101,16 +101,16 @@ class Dataloader(pl.LightningDataModule):
                 predict_inputs, predict_targets)     # 어차피 비어있으면 빈 배열이 리턴됨
 
     def train_dataloader(self):
-        return torch.utils.data.DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=self.shuffle)
+        return torch.utils.data.DataLoader(self.train_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=self.shuffle)
 
     def val_dataloader(self):
-        return torch.utils.data.DataLoader(self.val_dataset, batch_size=self.batch_size)
+        return torch.utils.data.DataLoader(self.val_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
 
     def test_dataloader(self):
-        return torch.utils.data.DataLoader(self.test_dataset, batch_size=self.batch_size)
+        return torch.utils.data.DataLoader(self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
 
     def predict_dataloader(self):
-        return torch.utils.data.DataLoader(self.predict_dataset, batch_size=self.batch_size)
+        return torch.utils.data.DataLoader(self.predict_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
 
 
 class Model(pl.LightningModule):
@@ -121,11 +121,15 @@ class Model(pl.LightningModule):
         self.model_name = model_name
         self.lr = learning_rate
 
+        self.hidden_dropout_prob = config.hidden_dropout_prob
+        self.attention_probs_dropout_prob = config.attention_probs_dropout_prob
+
         # 사용할 모델을 호출합니다.
         self.plm = transformers.AutoModelForSequenceClassification.from_pretrained(
-            pretrained_model_name_or_path=model_name, num_labels=1)
+            pretrained_model_name_or_path=config.model_name, num_labels=1, hidden_dropout_prob=self.hidden_dropout_prob, attention_probs_dropout_prob=self.attention_probs_dropout_prob)
         # Loss 계산을 위해 사용될 MSELoss를 호출합니다.
-        self.loss_func = torch.nn.MSELoss()
+        self.mse_loss_func = torch.nn.MSELoss()  # mse Loss 값
+        self.mse_loss_l1 = torch.nn.L1Loss()  # L1 Loss 값
 
     def forward(self, x):
         x = self.plm(x)['logits']  # [CLS] embedding vector를 반환
@@ -135,8 +139,8 @@ class Model(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
         logits = self(x)
-        loss = self.loss_func(logits, y.float())
-
+        loss = self.mse_loss_func(logits, y.float())
+        
         self.log("train_loss", loss)
 
         return loss
@@ -144,8 +148,8 @@ class Model(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x, y = batch
         logits = self(x)
-        loss = self.loss_func(logits, y.float())
-
+        loss = self.mse_loss_func(logits, y.float())
+        
         self.log("val_loss", loss)
         self.log("val_pearson", torchmetrics.functional.pearson_corrcoef(
             logits.squeeze(), y.squeeze()))

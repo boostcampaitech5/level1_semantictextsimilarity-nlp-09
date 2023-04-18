@@ -17,7 +17,10 @@ callback_setting = {
     "val_pearson": {"monitor": "val_pearson", "mode": "max"},
 }
 
-def base_train(train_config, sweep_config=None, logger=None):
+def base_train(train_config, folder_name):
+    # wandb 시작
+    wandb_logger, _ = sweep_main(folder_name)
+    
     # dataloader와 model을 생성합니다.
     # 주의, sweep을 사용한다면, 해당하는 부분을 parser -> config로 바꿔 주셔야 합니다! ex) lr을 하이퍼 파라미터 튜닝을 한다면, parser['learning_rate] -> config.lr
     dataloader = Dataloader(
@@ -33,7 +36,7 @@ def base_train(train_config, sweep_config=None, logger=None):
         train_config.model_name,
         train_config.train.learning_rate,
         )
-
+    
     # log에 batch_size 기록
     if sweep_config == None:
         model.log("batch_size", train_config.train.batch_size)

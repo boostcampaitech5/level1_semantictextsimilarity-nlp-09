@@ -3,7 +3,7 @@ from omegaconf import OmegaConf
 from constants import CONFIG
 
 class Config():
-    def __init__(self, cfg, opt):
+    def __init__(self, cfg, opt, model_dir):
         self.batch_size = int(cfg[opt]["batch_size"])
         self.max_epoch = int(cfg[opt]["max_epoch"])
         self.shuffle = bool(cfg[opt]["shuffle"])
@@ -19,10 +19,20 @@ class Config():
     def set_folder_dir(self, folder_dir):
         self.folder_dir = folder_dir
 
-
 def load_config(config_file):
     with open(config_file) as file:
         config = yaml.safe_load(file)
+    
+    with open(model) as file:
+        model_dir = yaml.safe_load(file)
+
+    return Config(config, opt, model_dir)
+
+
+def load_sweep_config(config, opt, model):
+
+    with open(model) as file:
+        model_dir = yaml.safe_load(file)
 
     return Config(config, "train"), Config(config, "inference")
 
