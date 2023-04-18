@@ -42,31 +42,17 @@ if __name__ == '__main__':
         base_train(config, folder_name)
         base_inference(config)
     else:
-        # sweep_config['metric'] = {'name':'val_pearson', 'goal':'maximize'}  # pearson 점수가 최대화가 되는 방향으로 학습을 진행합니다. (미션2)
-        # sweep_config = { 
-        #     "method" : "random",
-        #     "metric": {
-        #         "goal": "minimize", 
-        #         "name": "val_loss"
-        #     },
-        #     "parameters" : {
-        #         "batch_size": {"values": [8, 16, 32]}
-        #     }
-        # }
-
-        with open(WANDB.CONFIG_PATH) as file:
-            sweep_config = yaml.safe_load(file)
-            
+        sweep_config = load_config(WANDB.CONFIG_PATH)  
         sweep_id = wandb.sweep(
             sweep=sweep_config,         # config 딕셔너리를 추가합니다.
             project='boostcamp_STS'     # project의 이름을 추가합니다.
         )
-
         wandb.agent(
             sweep_id=sweep_id,          # sweep의 정보를 입력하고
             function=sweep_train,       # 해당 코드를
             project='boostcamp_STS',
-            count=10                     # 총 n회 실행해봅니다.
+            count=5                     # 총 n회 실행해봅니다.
         )
 
-    # base_inference(inference_config)
+        base_inference(config)
+        wandb.finish()
