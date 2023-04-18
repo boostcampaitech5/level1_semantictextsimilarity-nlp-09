@@ -1,6 +1,8 @@
-import os
 import yaml
 import wandb
+import os, random
+import numpy as np
+import torch
 
 from constants import CONFIG
 from constants import WANDB
@@ -9,16 +11,24 @@ from train import base_train
 from sweep_train import sweep_train
 from inference import base_inference
 from utils.log import make_log_dirs
-from utils.config import load_config
+from utils.config import load_config, load_omegaconf
 from utils.wandb import *
 
 if __name__ == '__main__':
-    ## config/config.yaml에서 파라미터 정보를 가져옵니다.
-    train_config = load_config(CONFIG.CONFIG_PATH, "train", CONFIG.MODEL_PATH)
-    inference_config = load_config(
-        CONFIG.CONFIG_PATH, "inference", CONFIG.MODEL_PATH)
+    # config/config.yaml에서 파라미터 정보를 가져옵니다.
+    # train_config, inference_config = load_config(CONFIG.CONFIG_PATH)
+    config = load_omegaconf()
     
-    ## my_log 폴더를 생성하는 코드
+    # torch, np 설정
+    SEED = config.seed
+    random.seed(SEED)
+    np.random.seed(SEED)
+    torch.manual_seed(SEED)
+    torch.cuda.manual_seed_all(SEED)
+    torch.backends.cudnn.benchmark = False
+    torch.use_deterministic_algorithms(True)   
+
+    # my_log 폴더를 생성하는 코드
     if not os.path.isdir(CONFIG.LOGDIR_PATH):
         os.mkdir(CONFIG.LOGDIR_NAME)
 
