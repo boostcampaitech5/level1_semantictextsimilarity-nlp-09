@@ -56,7 +56,7 @@ if __name__ == '__main__':
             sweep_id=sweep_id,          # sweep의 정보를 입력하고
             function=sweep_train,       # 해당 코드를
             project='boostcamp_STS',
-            count=1                     # 총 3회 실행해봅니다.
+            count=10                     # 총 n회 실행해봅니다.
         )
 
     # base_inference(inference_config)
