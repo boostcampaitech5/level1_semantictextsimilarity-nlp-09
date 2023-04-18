@@ -7,14 +7,14 @@ parameters :
     values :
       - 4
       - 8
-      - 16
+      # - 16
   max_epoch : 
     values :
       - 100
   learning_rate : 
     distribution: "uniform"  
     min : 1e-6      
-    max : 1e-5
+    max : 5e-6
   shuffle : 
     values : 
       - True

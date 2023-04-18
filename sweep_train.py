@@ -57,3 +57,5 @@ def sweep_train():
     
     # 학습이 완료된 모델을 저장 / my_log 안에 날짜 폴더에 모델을 저장
     torch.save(model, os.path.join(train_config.folder_dir, 'model.pt'))
+    
+    
