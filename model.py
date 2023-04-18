@@ -27,11 +27,12 @@ class Dataset(torch.utils.data.Dataset):
 
 
 class Dataloader(pl.LightningDataModule):
-    def __init__(self, model_name, batch_size, shuffle, train_path, dev_path, test_path, predict_path):
+    def __init__(self, model_name, batch_size, shuffle, num_workers, train_path, dev_path, test_path, predict_path):
         super().__init__()
         self.model_name = model_name
         self.batch_size = batch_size
         self.shuffle = shuffle
+        self.num_workers = num_workers
 
         self.train_path = train_path
         self.dev_path = dev_path
@@ -114,19 +115,19 @@ class Dataloader(pl.LightningDataModule):
 
 
 class Model(pl.LightningModule):
-    def __init__(self, model_name, learning_rate):
+    def __init__(self, model_name, learning_rate, hidden_dropout_prob, attention_probs_dropout_prob):
         super().__init__()
         self.save_hyperparameters()
 
         self.model_name = model_name
         self.lr = learning_rate
 
-        self.hidden_dropout_prob = config.hidden_dropout_prob
-        self.attention_probs_dropout_prob = config.attention_probs_dropout_prob
+        self.hidden_dropout_prob = hidden_dropout_prob
+        self.attention_probs_dropout_prob = attention_probs_dropout_prob
 
         # 사용할 모델을 호출합니다.
         self.plm = transformers.AutoModelForSequenceClassification.from_pretrained(
-            pretrained_model_name_or_path=config.model_name, num_labels=1, hidden_dropout_prob=self.hidden_dropout_prob, attention_probs_dropout_prob=self.attention_probs_dropout_prob)
+            pretrained_model_name_or_path=model_name, num_labels=1, hidden_dropout_prob=hidden_dropout_prob, attention_probs_dropout_prob=attention_probs_dropout_prob)
         # Loss 계산을 위해 사용될 MSELoss를 호출합니다.
         self.mse_loss_func = torch.nn.MSELoss()  # mse Loss 값
         self.mse_loss_l1 = torch.nn.L1Loss()  # L1 Loss 값
