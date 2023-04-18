@@ -1,5 +1,6 @@
 import yaml
-
+from omegaconf import OmegaConf
+from constants import CONFIG
 
 class Config():
     def __init__(self, cfg, opt):
@@ -24,3 +25,8 @@ def load_config(config_file):
         config = yaml.safe_load(file)
 
     return Config(config, "train"), Config(config, "inference")
+
+
+# import omegaconf
+def load_omegaconf():
+    return OmegaConf.load(CONFIG.CONFIG_PATH)

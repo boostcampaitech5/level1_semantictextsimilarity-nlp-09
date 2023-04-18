@@ -6,28 +6,52 @@ import torch
 import pytorch_lightning as pl
 
 from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.callbacks import ModelCheckpoint
 
 from model import Dataloader, Dataset, Model
 from constants import CONFIG
 from utils.wandb import *
 
+callback_setting = {
+    "val_loss": {"monitor": "val_loss", "mode": "min"},
+    "val_pearson": {"monitor": "val_pearson", "mode": "max"},
+}
 
-def base_train(train_config, sweep_config, logger):
+def base_train(train_config, sweep_config=None, logger=None):
     # dataloader와 model을 생성합니다.
     # 주의, sweep을 사용한다면, 해당하는 부분을 parser -> config로 바꿔 주셔야 합니다! ex) lr을 하이퍼 파라미터 튜닝을 한다면, parser['learning_rate] -> config.lr
-    dataloader = Dataloader(train_config)
-    model = Model(train_config)
+    dataloader = Dataloader(
+        train_config.model_name,
+        train_config.train.batch_size,
+        train_config.train.shuffle,
+        train_config.path.train_path,
+        train_config.path.test_path,
+        train_config.path.dev_path,
+        train_config.path.dev_path,
+    )
+    model = Model(
+        train_config.model_name,
+        train_config.train.learning_rate,
+        )
 
     # log에 batch_size 기록
     if sweep_config == None:
-        model.log("batch_size", train_config.batch_size)
+        model.log("batch_size", train_config.train.batch_size)
     else:
         model.log("batch_size", sweep_config.batch_size)
 
     # gpu가 없으면 accelerator='cpu', 있으면 accelerator='gpu'
-    early_stopping = EarlyStopping(monitor='val_loss', patience=3, mode='min')
-    trainer = pl.Trainer(accelerator='gpu', max_epochs=train_config.max_epoch, log_every_n_steps=1,
-                         logger=logger, callbacks=[early_stopping], default_root_dir=train_config.folder_dir)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=5, mode='min')
+    trainer = pl.Trainer(accelerator = 'gpu',
+                         max_epochs = train_config.train.max_epoch,
+                         log_every_n_steps = 1,
+                         logger = logger,
+                         default_root_dir = train_config.folder_dir,
+                         callbacks=[
+                             EarlyStopping(monitor=callback_setting[train_config.callback]["monitor"], min_delta=0.00, patience=5, verbose=False, mode=callback_setting[train_config.callback]["mode"], ),
+                             ModelCheckpoint(dirpath=train_config.folder_dir, save_top_k=3, monitor=callback_setting[train_config.callback]["monitor"], mode=callback_setting[train_config.callback]["mode"], filename="{epoch}-{step}-{val_pearson}", ),
+                             ],
+                         )
 
     # Train part
     trainer.fit(model=model, datamodule=dataloader)
@@ -51,3 +75,5 @@ def base_train(train_config, sweep_config, logger):
 
     # 학습이 완료된 모델을 저장 / my_log 안에 날짜 폴더에 모델을 저장
     torch.save(model, os.path.join(train_config.folder_dir, 'model.pt'))
+    
+    wandb.finish()

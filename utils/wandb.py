@@ -1,6 +1,3 @@
-import os
-from datetime import datetime
-
 ## wandb
 import wandb
 from pytorch_lightning.loggers import WandbLogger
