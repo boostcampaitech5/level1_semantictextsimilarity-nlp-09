@@ -7,6 +7,7 @@ import torch
 import torchmetrics
 import pytorch_lightning as pl
 
+
 class Dataset(torch.utils.data.Dataset):
     def __init__(self, inputs, targets=[]):
         self.inputs = inputs
@@ -26,24 +27,24 @@ class Dataset(torch.utils.data.Dataset):
 
 
 class Dataloader(pl.LightningDataModule):
-    def __init__(self, config):
+    def __init__(self, model_name, batch_size, shuffle, train_path, dev_path, test_path, predict_path):
         super().__init__()
-        self.model_name = config.model_name
-        self.batch_size = config.batch_size
-        self.shuffle = config.shuffle
-        self.num_workers = config.num_workers
+        self.model_name = model_name
+        self.batch_size = batch_size
+        self.shuffle = shuffle
 
-        self.train_path = config.train_path
-        self.dev_path = config.dev_path
-        self.test_path = config.test_path
-        self.predict_path = config.predict_path
+        self.train_path = train_path
+        self.dev_path = dev_path
+        self.test_path = test_path
+        self.predict_path = predict_path
 
         self.train_dataset = None
         self.val_dataset = None
         self.test_dataset = None
         self.predict_dataset = None
 
-        self.tokenizer = transformers.AutoTokenizer.from_pretrained(config.model_name, max_length=160)
+        self.tokenizer = transformers.AutoTokenizer.from_pretrained(
+            model_name, max_length=128)
         self.target_columns = ['label']
         self.delete_columns = ['id']
         self.text_columns = ['sentence_1', 'sentence_2']
@@ -52,8 +53,10 @@ class Dataloader(pl.LightningDataModule):
         data = []
         for idx, item in tqdm(dataframe.iterrows(), desc='tokenizing', total=len(dataframe)):
             # 두 입력 문장을 [SEP] 토큰으로 이어붙여서 전처리합니다.
-            text = '[SEP]'.join([item[text_column] for text_column in self.text_columns])
-            outputs = self.tokenizer(text, add_special_tokens=True, padding='max_length', truncation=True)
+            text = '[SEP]'.join([item[text_column]
+                                for text_column in self.text_columns])
+            outputs = self.tokenizer(
+                text, add_special_tokens=True, padding='max_length', truncation=True)
             data.append(outputs['input_ids'])
         return data
 
@@ -88,12 +91,14 @@ class Dataloader(pl.LightningDataModule):
             # 평가데이터 준비
             test_data = pd.read_csv(self.test_path)
             predict_data = pd.read_csv(self.predict_path)
-            
+
             test_inputs, test_targets = self.preprocessing(test_data)
             predict_inputs, predict_targets = self.preprocessing(predict_data)
-            
+
             self.test_dataset = Dataset(test_inputs, test_targets)
-            self.predict_dataset = Dataset(predict_inputs, [])
+            # self.predict_dataset = Dataset(predict_inputs, [])
+            self.predict_dataset = Dataset(
+                predict_inputs, predict_targets)     # 어차피 비어있으면 빈 배열이 리턴됨
 
     def train_dataloader(self):
         return torch.utils.data.DataLoader(self.train_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=self.shuffle)
@@ -109,12 +114,12 @@ class Dataloader(pl.LightningDataModule):
 
 
 class Model(pl.LightningModule):
-    def __init__(self, config):
+    def __init__(self, model_name, learning_rate):
         super().__init__()
         self.save_hyperparameters()
 
-        self.model_name = config.model_name
-        self.lr = config.learning_rate
+        self.model_name = model_name
+        self.lr = learning_rate
 
         self.hidden_dropout_prob = config.hidden_dropout_prob
         self.attention_probs_dropout_prob = config.attention_probs_dropout_prob
@@ -127,8 +132,8 @@ class Model(pl.LightningModule):
         self.mse_loss_l1 = torch.nn.L1Loss()  # L1 Loss 값
 
     def forward(self, x):
-        x = self.plm(x)['logits'] # [CLS] embedding vector를 반환
-        
+        x = self.plm(x)['logits']  # [CLS] embedding vector를 반환
+
         return x
 
     def training_step(self, batch, batch_idx):
@@ -146,7 +151,8 @@ class Model(pl.LightningModule):
         loss = self.mse_loss_func(logits, y.float())
         
         self.log("val_loss", loss)
-        self.log("val_pearson", torchmetrics.functional.pearson_corrcoef(logits.squeeze(), y.squeeze()))
+        self.log("val_pearson", torchmetrics.functional.pearson_corrcoef(
+            logits.squeeze(), y.squeeze()))
 
         return loss
 
@@ -154,16 +160,21 @@ class Model(pl.LightningModule):
         x, y = batch
         logits = self(x)
 
-        self.log("test_pearson", torchmetrics.functional.pearson_corrcoef(logits.squeeze(), y.squeeze()))
-        
+        self.log("test_pearson", torchmetrics.functional.pearson_corrcoef(
+            logits.squeeze(), y.squeeze()))
+
         return logits
 
     def predict_step(self, batch, batch_idx):
-        x = batch
-        logits = self(x)
-        
-        return logits.squeeze()
-            
+        if len(batch) == 2:
+            x, _ = batch        # 기존 x, y에서 y는 사용하지 않아 무시처리 하였습니다.
+            logits = self(x)
+            return logits
+        else:
+            x = batch
+            logits = self(x)
+            return logits.squeeze()
+
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr)
         return optimizer

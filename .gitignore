@@ -3,6 +3,7 @@
 /lightning_logs
 /wandb
 /boostcamp_STS/*
+keys.json
 
 */.ipynb_checkpoints
 */__pycache__
