@@ -24,6 +24,7 @@ def base_train(train_config, sweep_config=None, logger=None):
         train_config.model_name,
         train_config.train.batch_size,
         train_config.train.shuffle,
+        train_config.train.num_workers,
         train_config.path.train_path,
         train_config.path.test_path,
         train_config.path.dev_path,
@@ -32,20 +33,21 @@ def base_train(train_config, sweep_config=None, logger=None):
     model = Model(
         train_config.model_name,
         train_config.train.learning_rate,
+        train_config.train.hidden_dropout_prob,
+        train_config.train.attention_probs_dropout_prob,
         )
-
     # log에 batch_size 기록
-    if sweep_config == None:
-        model.log("batch_size", train_config.train.batch_size)
-    else:
-        model.log("batch_size", sweep_config.batch_size)
+    # if sweep_config == None:
+    #     model.log("batch_size", train_config.train.batch_size)
+    # else:
+    #     model.log("batch_size", sweep_config.batch_size)
 
     # gpu가 없으면 accelerator='cpu', 있으면 accelerator='gpu'
     early_stopping = EarlyStopping(monitor='val_loss', patience=5, mode='min')
     trainer = pl.Trainer(accelerator = 'gpu',
                          max_epochs = train_config.train.max_epoch,
                          log_every_n_steps = 1,
-                         logger = logger,
+                         logger = wandb_logger,
                          default_root_dir = train_config.folder_dir,
                          callbacks=[
                              EarlyStopping(monitor=callback_setting[train_config.callback]["monitor"], min_delta=0.00, patience=5, verbose=False, mode=callback_setting[train_config.callback]["mode"], ),

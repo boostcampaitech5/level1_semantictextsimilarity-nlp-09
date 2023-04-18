@@ -18,6 +18,7 @@ def base_inference(inference_config):
         inference_config.model_name,
         inference_config.inference.batch_size,
         inference_config.inference.shuffle,
+        inference_config.train.num_workers,
         inference_config.path.train_path,
         inference_config.path.test_path,
         inference_config.path.dev_path,
@@ -26,6 +27,8 @@ def base_inference(inference_config):
     model = Model(
         inference_config.model_name,
         inference_config.train.learning_rate,
+        inference_config.train.hidden_dropout_prob,
+        inference_config.train.attention_probs_dropout_prob,
         )
 
     # gpu가 없으면 'gpus=0'을, gpu가 여러개면 'gpus=4'처럼 사용하실 gpu의 개수를 입력해주세요

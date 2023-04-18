@@ -21,23 +21,24 @@ if __name__ == '__main__':
     folder_name = make_log_dirs(CONFIG.LOGDIR_NAME)
 
     # config에 my_log 폴더 경로 기록
-    train_config.set_folder_dir(folder_name)
-    inference_config.set_folder_dir(folder_name)
+    config.folder_dir = folder_name
 
     ## config의 sweep 사용 여부에 따라 sweep config 설정 판단
-    if not train_config.sweep:
-        folder_name = make_log_dirs(CONFIG.LOGDIR_NAME)
-        
-        # config에 my_log 폴더 경로 기록
-        config.folder_dir = folder_name
-        # train_config.set_folder_dir(folder_name)
-        # inference_config.set_folder_dir(folder_name)
-
-        base_train(config)
-
-        # wandb_logger, sweep_config = sweep_main(folder_name)
-        # base_train(config, sweep_config, wandb_logger)
-        # base_inference(config)
+    if not config.train.sweep:        
+        base_train(config, folder_name)
+        base_inference(config)
+    else:
+        # sweep_config['metric'] = {'name':'val_pearson', 'goal':'maximize'}  # pearson 점수가 최대화가 되는 방향으로 학습을 진행합니다. (미션2)
+        # sweep_config = { 
+        #     "method" : "random",
+        #     "metric": {
+        #         "goal": "minimize", 
+        #         "name": "val_loss"
+        #     },
+        #     "parameters" : {
+        #         "batch_size": {"values": [8, 16, 32]}
+        #     }
+        # }
 
         
 #     else:
