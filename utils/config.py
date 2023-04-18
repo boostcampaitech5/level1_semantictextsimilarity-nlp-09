@@ -22,13 +22,10 @@ class Config():
         
     def set_folder_dir(self, folder_dir):
         self.folder_dir = folder_dir
-        
-def load_config(config_file, opt, model):
-    with open(config_file) as file:
+
+def load_config(config_path):
+    with open(config_path) as file:
         config = yaml.safe_load(file)
-    
-    with open(model) as file:
-        model_dir = yaml.safe_load(file)
 
     return Config(config, opt, model_dir)
 
