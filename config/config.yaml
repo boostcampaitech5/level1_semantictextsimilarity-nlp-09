@@ -4,7 +4,7 @@ callback : "val_pearson"
 
 train :
     batch_size : 64
-    max_epoch : 12
+    max_epoch : 50
     shuffle : True
     learning_rate : 3e-5
     sweep : False
