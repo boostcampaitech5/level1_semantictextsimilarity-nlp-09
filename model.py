@@ -115,6 +115,7 @@ class Dataloader(pl.LightningDataModule):
 
 class Model(pl.LightningModule):
     def __init__(self, config):
+        
         super().__init__()
         self.save_hyperparameters()
 
@@ -125,8 +126,40 @@ class Model(pl.LightningModule):
         self.plm = transformers.AutoModelForSequenceClassification.from_pretrained(
             pretrained_model_name_or_path=config.model_name, num_labels=1)
         # Loss 계산을 위해 사용될 MSELoss를 호출합니다.
-        self.loss_func = torch.nn.MSELoss()
+        # self.loss_func = torch.nn.MSELoss()
+        self.data_counts = [4163, 1372, 1294, 2058 ,987]
+        self.weights = self.calculate_weights(self.data_counts)
+        self.loss_func = self.weighted_MSE_loss
+        #self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        #self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        #self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    
+    
+    # 각 구간별 가중치를 계산하는 함수
+    def calculate_weights(self, bin_counts):
+        total_samples = sum(bin_counts)  # 전체 데이터 개수
+        bin_ratios = [count / total_samples for count in bin_counts]  # 각 구간별 비율
+        bin_weights = [1 / (ratio * len(bin_counts)) for ratio in bin_ratios]  # 각 구간별 가중치
+        return torch.tensor(bin_weights)
+    
+    # weighted_MSE loss 계산
+    def weighted_MSE_loss(self, y_pred, y_true):
+        # 각 실제값(label)이 속한 구간의 인덱스를 계산
+        # bins = torch.tensor([0, 1, 2, 3, 4]) # (-0.001, 1.0], (1.0, 2.0], (2.0, 3.0], (3.0, 4.0], (4.0, 5.0]
+        # bin_indices = torch.bucketize(y_true, bins)
+        #bin_indices = torch.bucketize(y_true, torch.tensor([0, 1, 2, 3, 4]).to(self.device))
+        bin_indices = torch.bucketize(y_true, torch.tensor([0, 1, 2, 3, 4]).to('cuda'))
+        #print(f'bin_indices : {bin_indices}')
+        
+        # 각 label에 대한 weight 설정
+        weights = self.weights.to('cuda')
+        bin_weights = weights[bin_indices - 1]
+        #print(f'bin_weights : {bin_weights}')
 
+        # Weighted MSE 계산
+        mse = torch.mean(bin_weights * (y_true - y_pred) ** 2) 
+        return mse
+    
     def forward(self, x):
         x = self.plm(x)['logits']  # [CLS] embedding vector를 반환
 
