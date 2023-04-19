@@ -64,7 +64,7 @@ def base_train(train_config, folder_name):
     trainer.test(model=model, datamodule=dataloader)
 
     # best model pick up
-    best_model_path = trainer.callbacks[1].best_model_path
+    best_model_path = checkpoint_callback.best_model_path
     check_model = model.load_from_checkpoint(best_model_path)
 
     # best_model.load_state_dict(torch.load(best_model_path))
