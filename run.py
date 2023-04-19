@@ -15,7 +15,7 @@ from utils.config import load_config, load_omegaconf
 from utils.wandb import *
 import os
 os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
-!set CUBLAS_WORKSPACE_CONFIG=:4096:8
+
 
 if __name__ == '__main__':
     # config/config.yaml에서 파라미터 정보를 가져옵니다.
