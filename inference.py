@@ -50,4 +50,4 @@ def base_inference(inference_config):
     ## output.csv는, my_log 안에 날짜 폴더에 저장됩니다.
     output = pd.read_csv(CONFIG.SUBMISSION_PATH)
     output['target'] = predictions
-    output.to_csv(os.path.join(inference_config.folder_dir, 'output.csv'), index=False) #
+    output.to_csv(os.path.join('./data/', 'output.csv'), index=False) #inference_config.folder_dir
