@@ -63,8 +63,14 @@ def base_train(train_config, folder_name):
     trainer.fit(model=model, datamodule=dataloader)
     trainer.test(model=model, datamodule=dataloader)
 
+    # best model pick up
+    best_model_path = trainer.callbacks[1].best_model_path
+    check_model = model.load_from_checkpoint(best_model_path)
+
+    # best_model.load_state_dict(torch.load(best_model_path))
+
     # 배치로 구성된 예측값을 합칩니다.
-    results = trainer.predict(model=model, datamodule=dataloader)
+    results = trainer.predict(model=check_model, datamodule=dataloader)
     test_pred = torch.cat(results)
 
     # 테스트로 확인한 데이터 중 절댓값이 1.0 이상 차이나는 경우를 기록
