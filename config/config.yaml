@@ -1,4 +1,4 @@
-model_name : "snunlp/KR-ELECTRA-discriminator"
+model_name : "snunlp/KR-ELECTRA-discriminator" #"monologg/koelectra-base-v3-discriminator"
 seed : 42
 callback : "val_pearson"
 
