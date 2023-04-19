@@ -1,4 +1,4 @@
-model_name : "klue/roberta-large"
+model_name : "snunlp/KR-ELECTRA-discriminator"
 seed : 42
 callback : "val_pearson"
 
