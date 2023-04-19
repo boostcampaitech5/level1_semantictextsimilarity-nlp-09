@@ -142,7 +142,7 @@ class XlmModel(pl.LightningModule):
         logits = self(x)
         loss = self.mse_loss_func(logits, y.float())
 
-        self.log("train_loss", loss)
+        self.log("train_lossA", loss)
 
         return loss
 
@@ -151,8 +151,8 @@ class XlmModel(pl.LightningModule):
         logits = self(x)
         loss = self.mse_loss_func(logits, y.float())
 
-        self.log("val_loss", loss)
-        self.log("val_pearson", torchmetrics.functional.pearson_corrcoef(
+        self.log("val_lossA", loss)
+        self.log("val_pearsonA", torchmetrics.functional.pearson_corrcoef(
             logits.squeeze(), y.squeeze()))
 
         return loss
@@ -161,7 +161,7 @@ class XlmModel(pl.LightningModule):
         x, y = batch
         logits = self(x)
 
-        self.log("test_pearson", torchmetrics.functional.pearson_corrcoef(
+        self.log("test_pearsonA", torchmetrics.functional.pearson_corrcoef(
             logits.squeeze(), y.squeeze()))
 
         return logits
@@ -209,7 +209,7 @@ class KlueModel(pl.LightningModule):
         logits = self(x)
         loss = self.mse_loss_func(logits, y.float())
 
-        self.log("train_loss", loss)
+        self.log("train_lossB", loss)
 
         return loss
 
@@ -218,8 +218,8 @@ class KlueModel(pl.LightningModule):
         logits = self(x)
         loss = self.mse_loss_func(logits, y.float())
 
-        self.log("val_loss", loss)
-        self.log("val_pearson", torchmetrics.functional.pearson_corrcoef(
+        self.log("val_lossB", loss)
+        self.log("val_pearsonB", torchmetrics.functional.pearson_corrcoef(
             logits.squeeze(), y.squeeze()))
 
         return loss
@@ -228,7 +228,7 @@ class KlueModel(pl.LightningModule):
         x, y = batch
         logits = self(x)
 
-        self.log("test_pearson", torchmetrics.functional.pearson_corrcoef(
+        self.log("test_pearsonB", torchmetrics.functional.pearson_corrcoef(
             logits.squeeze(), y.squeeze()))
 
         return logits
@@ -248,7 +248,7 @@ class KlueModel(pl.LightningModule):
         return optimizer
 
 
-class Model(pl.LightningModule):
+class EnsembleModel(pl.LightningModule):
     def __init__(self, modelA_path, modelB_path, modelA_hparams=None, modelB_hparams=None):
         super().__init__()
         self.save_hyperparameters()

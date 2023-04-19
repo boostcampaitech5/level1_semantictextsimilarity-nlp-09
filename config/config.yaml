@@ -1,4 +1,7 @@
-model_name : "klue/roberta-small"
+model_nameA : "klue/roberta-base"
+model_nameB : "xlm-roberta-base"
+ensemble_model_name : "klue/roberta-base"
+model_name : "xlm-roberta-base"
 seed : 42
 callback : "val_pearson"
 
@@ -7,7 +10,7 @@ train :
     max_epoch : 1
     shuffle : True
     learning_rate : 1e-5
-    sweep : False
+    sweep : True
     num_workers : 8
     hidden_dropout_prob : 0.0
     attention_probs_dropout_prob: 0.0
