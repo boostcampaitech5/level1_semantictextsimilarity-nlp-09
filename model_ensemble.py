@@ -249,31 +249,28 @@ class KlueModel(pl.LightningModule):
 
 
 class Model(pl.LightningModule):
-    def __init__(self, modelA_path, modelB_path, modelA_hparams=None, modelB_hparams=None):
+    def __init__(self, model_name, learning_rate, hidden_dropout_prob, attention_probs_dropout_prob, model1, model2):
         super().__init__()
         self.save_hyperparameters()
 
+        self.model_name = model_name
+        self.lr = learning_rate
+
+        self.hidden_dropout_prob = hidden_dropout_prob
+        self.attention_probs_dropout_prob = attention_probs_dropout_prob
+
         # 사용할 모델을 호출합니다.
-        # If path exists, then load from path else instantiate model using respective hparams
-        if modelA_path:
-            self.modelA = XlmModel.load_from_checkpoint(modelA_path)
-        else:
-            self.modelA = XlmModel(**modelA_hparams)
-
-        if modelB_path: 
-            self.modelB = KlueModel.load_from_checkpoint(modelB_path)
-        else:
-            self.modelB = KlueModel(**modelB_hparams)
-
+        self.model1 = model1
+        self.model2 = model2
         self.classifier = torch.nn.Linear(2, 1)
-
+        
         # Loss 계산을 위해 사용될 MSELoss를 호출합니다.
         self.mse_loss_func = torch.nn.MSELoss()  # mse Loss 값
         self.mse_loss_l1 = torch.nn.L1Loss()  # L1 Loss 값
 
     def forward(self, x):
-        x1 = self.modelA(x)  # [CLS] embedding vector를 반환
-        x2 = self.modelB(x)  # [CLS] embedding vector를 반환
+        x1 = self.model1(x)  # [CLS] embedding vector를 반환
+        x2 = self.model2(x) # [CLS] embedding vector를 반환
         x = torch.cat((x1, x2), dim=1)
         x = self.classifier(x)
         return x
@@ -282,7 +279,7 @@ class Model(pl.LightningModule):
         x, y = batch
         logits = self(x)
         loss = self.mse_loss_func(logits, y.float())
-
+        
         self.log("train_loss", loss)
 
         return loss
@@ -291,7 +288,7 @@ class Model(pl.LightningModule):
         x, y = batch
         logits = self(x)
         loss = self.mse_loss_func(logits, y.float())
-
+        
         self.log("val_loss", loss)
         self.log("val_pearson", torchmetrics.functional.pearson_corrcoef(
             logits.squeeze(), y.squeeze()))
