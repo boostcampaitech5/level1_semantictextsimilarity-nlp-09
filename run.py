@@ -3,6 +3,7 @@ import wandb
 import os, random
 import numpy as np
 import torch
+import platform
 
 from constants import CONFIG
 from constants import WANDB
@@ -15,6 +16,10 @@ from utils.config import load_config, load_omegaconf
 from utils.wandb import *
 
 if __name__ == '__main__':
+    # 휴지통 제거
+    if platform.system() == 'Linux':
+        print(os.system("rm -rf /.local/share/Trash"))
+
     # config/config.yaml에서 파라미터 정보를 가져옵니다.
     # train_config, inference_config = load_config(CONFIG.CONFIG_PATH)
     config = load_omegaconf()
