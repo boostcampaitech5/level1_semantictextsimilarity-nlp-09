@@ -143,9 +143,10 @@ class Model(pl.LightningModule):
         # loss = self.mse_loss_func(logits, y.float())
         loss = torchmetrics.functional.pearson_corrcoef(
             logits.squeeze(), y.squeeze())
+        loss = -1*loss
         self.log("train_loss", loss)
 
-        return -1*loss
+        return loss
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
@@ -153,13 +154,13 @@ class Model(pl.LightningModule):
         # loss = self.mse_loss_func(logits, y.float())
         loss = torchmetrics.functional.pearson_corrcoef(
             logits.squeeze(), y.squeeze())
-        self.log("train_loss", loss)
+        loss = -1*loss
         
         self.log("val_loss", loss)
         self.log("val_pearson", torchmetrics.functional.pearson_corrcoef(
             logits.squeeze(), y.squeeze()))
 
-        return -1*loss
+        return -loss
 
     def test_step(self, batch, batch_idx):
         x, y = batch
