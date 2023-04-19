@@ -54,7 +54,7 @@ def sweep_train():
 
     # gpu가 없으면 accelerator='cpu', 있으면 accelerator='gpu'
     trainer = pl.Trainer(accelerator = 'gpu',
-                         max_epochs = train_config.train.max_epoch,
+                         max_epochs = sweep_config.max_epoch,
                          log_every_n_steps = 1,
                          logger = wandb_logger,
                          default_root_dir = train_config.folder_dir,
