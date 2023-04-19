@@ -1,14 +1,16 @@
+model_name : "klue/roberta-small"
+seed : 42
+callback : "val_pearson"
+
 train :
     batch_size : 16
     max_epoch : 1
     shuffle : True
     learning_rate : 1e-5
     sweep : False
-    name: "klue/roberta-small"
-    train_path: "./data/train.csv"
-    dev_path: "./data/dev.csv"
-    test_path: "./data/dev.csv"
-    predict_path: "./data/dev.csv"
+    num_workers : 8
+    hidden_dropout_prob : 0.0
+    attention_probs_dropout_prob: 0.0
 
 inference :
     batch_size : 16
@@ -16,7 +18,11 @@ inference :
     shuffle : True
     learning_rate : 1e-5
     sweep : False
-    name: "klue/roberta-small"
+    num_workers : 8
+    hidden_dropout_prob : 0.0
+    attention_probs_dropout_prob: 0.0
+
+path : 
     train_path: "./data/train.csv"
     dev_path: "./data/dev.csv"
     test_path: "./data/dev.csv"

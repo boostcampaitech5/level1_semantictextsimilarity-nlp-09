@@ -10,6 +10,9 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 
 from model import Dataloader, Dataset, Model
 from constants import CONFIG
+from constants import WANDB
+from utils.config import load_omegaconf
+from utils.log import make_log_dirs
 from utils.wandb import *
 
 callback_setting = {
@@ -17,17 +20,23 @@ callback_setting = {
     "val_pearson": {"monitor": "val_pearson", "mode": "max"},
 }
 
-def base_train(train_config, folder_name):
+def sweep_train():
     # wandb 시작
-    wandb_logger, _ = sweep_main(folder_name)
+    wandb_logger, sweep_config = sweep_main(CONFIG.LOGDIR_NAME)
+
+    # config 초기화
+    sweep_config = wandb.config 
+    
+    train_config = load_omegaconf()
+    train_config.folder_dir = make_log_dirs(CONFIG.LOGDIR_NAME)
     
     # dataloader와 model을 생성합니다.
-    # 주의, sweep을 사용한다면, 해당하는 부분을 parser -> config로 바꿔 주셔야 합니다! ex) lr을 하이퍼 파라미터 튜닝을 한다면, parser['learning_rate] -> config.lr
+    ## 주의, sweep을 사용한다면, 해당하는 부분을 parser -> config로 바꿔 주셔야 합니다! ex) lr을 하이퍼 파라미터 튜닝을 한다면, parser['learning_rate] -> config.lr
     dataloader = Dataloader(
         train_config.model_name,
-        train_config.train.batch_size,
-        train_config.train.shuffle,
-        train_config.train.num_workers,
+        sweep_config.batch_size,
+        sweep_config.shuffle,
+        sweep_config.num_workers,
         train_config.path.train_path,
         train_config.path.test_path,
         train_config.path.dev_path,
@@ -35,17 +44,13 @@ def base_train(train_config, folder_name):
     )
     model = Model(
         train_config.model_name,
-        train_config.train.learning_rate,
-        train_config.train.hidden_dropout_prob,
-        train_config.train.attention_probs_dropout_prob,
+        sweep_config.learning_rate,
+        sweep_config.hidden_dropout_prob,
+        sweep_config.attention_probs_dropout_prob,
         )
     
-    model.log("batch_size", train_config.train.batch_size)
     # log에 batch_size 기록
-    # if sweep_config == None:
-    #     model.log("batch_size", train_config.train.batch_size)
-    # else:
-    #     model.log("batch_size", sweep_config.batch_size)
+    model.log("batch_size", sweep_config.batch_size)
 
     # gpu가 없으면 accelerator='cpu', 있으면 accelerator='gpu'
     trainer = pl.Trainer(accelerator = 'gpu',
@@ -54,19 +59,19 @@ def base_train(train_config, folder_name):
                          logger = wandb_logger,
                          default_root_dir = train_config.folder_dir,
                          callbacks=[
-                             EarlyStopping(monitor=callback_setting[train_config.callback]["monitor"], min_delta=0.00, patience=3, verbose=False, mode=callback_setting[train_config.callback]["mode"], restore_best_weights = True),
+                             EarlyStopping(monitor=callback_setting[train_config.callback]["monitor"], min_delta=0.00, patience=3, verbose=False, mode=callback_setting[train_config.callback]["mode"]),
                              ModelCheckpoint(dirpath=train_config.folder_dir, save_top_k=3, monitor=callback_setting[train_config.callback]["monitor"], mode=callback_setting[train_config.callback]["mode"], filename="{epoch}-{step}-{val_pearson}", ),
                              ],
                          )
-
+    
     # Train part
     trainer.fit(model=model, datamodule=dataloader)
     trainer.test(model=model, datamodule=dataloader)
-
-    # 배치로 구성된 예측값을 합칩니다.
+    
+    ## 배치로 구성된 예측값을 합칩니다.
     results = trainer.predict(model=model, datamodule=dataloader)
     test_pred = torch.cat(results)
-
+    
     # 테스트로 확인한 데이터 중 절댓값이 1.0 이상 차이나는 경우를 기록
     wrongs = []
     for i, pred in enumerate(test_pred):
@@ -82,4 +87,3 @@ def base_train(train_config, folder_name):
     # 학습이 완료된 모델을 저장 / my_log 안에 날짜 폴더에 모델을 저장
     torch.save(model, os.path.join(train_config.folder_dir, 'model.pt'))
     
-    wandb.finish()
