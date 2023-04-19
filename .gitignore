@@ -13,3 +13,4 @@ keys.json
 
 *.csv
 *.ckpt
+*.ipynb
