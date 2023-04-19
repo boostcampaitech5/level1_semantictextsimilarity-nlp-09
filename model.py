@@ -127,15 +127,36 @@ class Model(pl.LightningModule):
 
         # 사용할 모델을 호출합니다.
         self.plm = transformers.AutoModelForSequenceClassification.from_pretrained(
-            pretrained_model_name_or_path=model_name, num_labels=1, hidden_dropout_prob=hidden_dropout_prob, attention_probs_dropout_prob=attention_probs_dropout_prob)
+            pretrained_model_name_or_path=model_name, 
+            hidden_dropout_prob=hidden_dropout_prob, 
+            attention_probs_dropout_prob=attention_probs_dropout_prob,
+            output_hidden_states=True, ## 추가
+            # num_labels=1
+        ) 
+        
+        ## 추가할 모델 정의
+        # 마지막 1부분을 수정하면, linear모델도 쌓을 수 있습니다 self.linear = torch.nn.Linear(self.plm.config.hidden_size, self.plm.config.hidden_size)
+        self.linear = torch.nn.Linear(self.plm.config.hidden_size, 1)
+        # https://pytorch.org/docs/stable/generated/torch.nn.LSTM.html#torch.nn.LSTM 참고
+        # num_layers로 layer수를 지정해 주세요!
+        self.lstm = torch.nn.LSTM(self.plm.config.hidden_size, self.plm.config.hidden_size, num_layers=1, bidirectional=False, batch_first=True)
+        
         # Loss 계산을 위해 사용될 MSELoss를 호출합니다.
         self.mse_loss_func = torch.nn.MSELoss()  # mse Loss 값
         self.mse_loss_l1 = torch.nn.L1Loss()  # L1 Loss 값
 
     def forward(self, x):
-        x = self.plm(x)['logits']  # [CLS] embedding vector를 반환
-
-        return x
+        ## 마지막에 linear 모델 추가
+        plm_outputs = self.plm(x)
+        plm_logits = plm_outputs.logits # [CLS] embedding vector를 반환
+        last_hidden_state = plm_outputs.hidden_states[-1]
+        
+        ## 이부분을 선택해서 변경해 주셔야 합니다!
+        ## lstm 예시
+        lstm_outputs, _ = self.lstm(last_hidden_state)
+        latm_last_hidden_state = lstm_outputs[:,-1,:]
+        output = self.linear(latm_last_hidden_state)
+        return output
 
     def training_step(self, batch, batch_idx):
         x, y = batch
