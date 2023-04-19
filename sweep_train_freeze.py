@@ -48,7 +48,11 @@ def sweep_train():
         sweep_config.hidden_dropout_prob,
         sweep_config.attention_probs_dropout_prob,
         )
-    
+
+    for name, param in model.named_parameters():
+        if name not in ['plm.classifier.dense.weight', 'plm.classifier.dense.bias', 'plm.classifier.out_proj.weight', 'plm.classifier.out_proj.bias']:
+            param.requires_grad = False
+
     # log에 batch_size 기록
     model.log("batch_size", sweep_config.batch_size)
 
