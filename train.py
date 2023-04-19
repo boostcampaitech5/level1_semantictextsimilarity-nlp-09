@@ -46,6 +46,8 @@ def base_train(train_config, folder_name):
     #     model.log("batch_size", train_config.train.batch_size)
     # else:
     #     model.log("batch_size", sweep_config.batch_size)
+    early_stopping = EarlyStopping(monitor=callback_setting[train_config.callback]["monitor"], min_delta=0.00, patience=3, verbose=False, mode=callback_setting[train_config.callback]["mode"])
+    model_checkpoint = ModelCheckpoint(dirpath=train_config.folder_dir, save_top_k=1, monitor=callback_setting[train_config.callback]["monitor"], mode=callback_setting[train_config.callback]["mode"], filename="{epoch}-{step}-{val_pearson}")
 
     # gpu가 없으면 accelerator='cpu', 있으면 accelerator='gpu'
     trainer = pl.Trainer(accelerator = 'gpu',
@@ -53,10 +55,7 @@ def base_train(train_config, folder_name):
                          log_every_n_steps = 1,
                          logger = wandb_logger,
                          default_root_dir = train_config.folder_dir,
-                         callbacks=[
-                             EarlyStopping(monitor=callback_setting[train_config.callback]["monitor"], min_delta=0.00, patience=3, verbose=False, mode=callback_setting[train_config.callback]["mode"]), #, restore_best_weights = True
-                             ModelCheckpoint(dirpath=train_config.folder_dir, save_top_k=1, monitor=callback_setting[train_config.callback]["monitor"], mode=callback_setting[train_config.callback]["mode"], filename="{epoch}-{step}-{val_pearson}", ),
-                             ],
+                         callbacks=[early_stopping, model_checkpoint]
                          )
 
     # Train part
