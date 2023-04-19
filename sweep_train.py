@@ -8,7 +8,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
 
-from model import Dataloader, Dataset, Model
+from model_old import Dataloader, Dataset, Model
 from constants import CONFIG
 from constants import WANDB
 from utils.config import load_omegaconf
