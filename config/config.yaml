@@ -13,9 +13,9 @@ train :
     attention_probs_dropout_prob: 0.0
 
 inference :
-    batch_size : 256
+    batch_size : 64
     max_epoch : 1
-    shuffle : True
+    shuffle : False
     learning_rate : 1e-5
     sweep : False
     num_workers : 8
