@@ -34,9 +34,12 @@ def base_inference(inference_config):
     # gpu가 없으면 'gpus=0'을, gpu가 여러개면 'gpus=4'처럼 사용하실 gpu의 개수를 입력해주세요
     trainer = pl.Trainer(accelerator='gpu', max_epochs=inference_config.inference.max_epoch, log_every_n_steps=1)
 
+    model_path = "/opt/ml/level1_semantictextsimilarity-nlp-09/my_log/2023-04-19-09-20-07/epoch=8-step=9936-val_pearson=0.9258195161819458.ckpt"
+    model.load_state_dict(torch.load(model_path))
+
     # Inference part
     # 저장된 모델로 예측을 진행합니다.
-    model = torch.load(os.path.join(inference_config.folder_dir, CONFIG.MODEL_NAME))
+    # model = torch.load(os.path.join(inference_config.folder_dir, CONFIG.MODEL_NAME))
     predictions = trainer.predict(model=model, datamodule=dataloader)
 
     # 예측된 결과를 형식에 맞게 반올림하여 준비합니다.
