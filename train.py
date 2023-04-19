@@ -55,7 +55,7 @@ def base_train(train_config, folder_name):
                          default_root_dir = train_config.folder_dir,
                          callbacks=[
                              EarlyStopping(monitor=callback_setting[train_config.callback]["monitor"], min_delta=0.00, patience=3, verbose=False, mode=callback_setting[train_config.callback]["mode"]), #, restore_best_weights = True
-                             ModelCheckpoint(dirpath=train_config.folder_dir, save_top_k=3, monitor=callback_setting[train_config.callback]["monitor"], mode=callback_setting[train_config.callback]["mode"], filename="{epoch}-{step}-{val_pearson}", ),
+                             ModelCheckpoint(dirpath=train_config.folder_dir, save_top_k=2, monitor=callback_setting[train_config.callback]["monitor"], mode=callback_setting[train_config.callback]["mode"], filename="{epoch}-{step}-{val_pearson}", ),
                              ],
                          )
 
