@@ -128,14 +128,32 @@ class Model(pl.LightningModule):
         # 사용할 모델을 호출합니다.
         self.plm = transformers.AutoModelForSequenceClassification.from_pretrained(
             pretrained_model_name_or_path=model_name, num_labels=1, hidden_dropout_prob=hidden_dropout_prob, attention_probs_dropout_prob=attention_probs_dropout_prob)
+        self.num_layers = num_layers
+        self.lstm = nn.LSTM(input_size=self.plm.config.hidden_size, hidden_size=self.plm.config.hidden_size, num_layers=self.num_layers, batch_first=True)
+        self.gru = nn.GRU(input_size=self.plm.config.hidden_size, hidden_size=self.plm.config.hidden_size, num_layers=self.num_layers, batch_first=True)
         # Loss 계산을 위해 사용될 MSELoss를 호출합니다.
         self.mse_loss_func = torch.nn.MSELoss()  # mse Loss 값
         self.mse_loss_l1 = torch.nn.L1Loss()  # L1 Loss 값
 
-    def forward(self, x):
-        x = self.plm(x)['logits']  # [CLS] embedding vector를 반환
+    # def forward(self, x):
+    #     x = self.plm(x)['logits']  # [CLS] embedding vector를 반환
 
-        return x
+    #     return x
+    def forward(self, x):
+        outputs = self.plm(x)
+        hidden_states = outputs['hidden_states'][-1]  # Get the last layer's hidden states
+
+        lstm_output, _ = self.lstm(hidden_states)
+        cls_lstm_output = lstm_output[:, 0, :]  # Get the [CLS] token's output from LSTM
+
+        gru_output, _ = self.gru(hidden_states)
+        cls_gru_output = gru_output[:, 0, :]  # Get the [CLS] token's output from GRU
+
+        # Combine the outputs (e.g., concatenate, add or average them) and pass them through a linear layer for classification
+        combined_output = torch.cat((cls_lstm_output, cls_gru_output), dim=-1)
+        logits = nn.Linear(self.plm.config.hidden_size * 2, 1)(combined_output)
+
+        return logits
 
     def training_step(self, batch, batch_idx):
         x, y = batch
