@@ -147,8 +147,39 @@ class Model(pl.LightningModule):
 
         self.mse_loss_func = torch.nn.MSELoss()
         self.mse_loss_l1 = torch.nn.L1Loss()
+##################################################################################################
+        #> 가중치 추가
+        self.weight_correlation = 0.7 
+        self.weight_mse = 0.3
 
+    def correlation_loss_function(self, x, y):
+            x = x - torch.mean(x)
+            y = y - torch.mean(y)
+            x = x / (torch.sqrt(torch.sum(torch.square(x))) + 1e-5)
+            y = y / (torch.sqrt(torch.sum(torch.square(y))) + 1e-5)
+            corr = torch.mean(torch.mul(x, y))
+            return 1 - corr
 
+    def training_step(self, batch, batch_idx):
+            x, y = batch
+            logits = self(x)
+            mse_loss = self.mse_loss_func(logits, y.float())
+            correlation_loss = self.correlation_loss_function(logits, y.float())
+            loss = (self.weight_correlation * correlation_loss) + (self.weight_mse * mse_loss)
+            self.log("train_loss", loss)
+            return loss
+
+    def validation_step(self, batch, batch_idx):
+            x, y = batch
+            logits = self(x)
+            mse_loss = self.mse_loss_func(logits, y.float())
+            correlation_loss = self.correlation_loss_function(logits, y.float())
+            loss = (self.weight_correlation * correlation_loss) + (self.weight_mse * mse_loss)
+            self.log("val_loss", loss)
+            self.log("val_pearson", torchmetrics.functional.pearson_corrcoef(
+                logits.squeeze(), y.squeeze()))
+            return loss
+##################################################################################################
     def forward(self, x):
         x = x.to(self.device)
         outputs = self.plm(x, output_hidden_states=True)
@@ -160,6 +191,7 @@ class Model(pl.LightningModule):
         logits = self.linear(cls_lstm_output)
 
         return logits
+
     # def forward(self, x):
     #     x = x.to(self.device)
     #     outputs = self.plm(x, output_hidden_states=True)
@@ -172,25 +204,25 @@ class Model(pl.LightningModule):
 
     #     return logits
 
-    def training_step(self, batch, batch_idx):
-        x, y = batch
-        logits = self(x)
-        loss = self.mse_loss_func(logits, y.float())
+    # def training_step(self, batch, batch_idx):
+    #     x, y = batch
+    #     logits = self(x)
+    #     loss = self.mse_loss_func(logits, y.float())
         
-        self.log("train_loss", loss)
+    #     self.log("train_loss", loss)
 
-        return loss
+    #     return loss
 
-    def validation_step(self, batch, batch_idx):
-        x, y = batch
-        logits = self(x)
-        loss = self.mse_loss_func(logits, y.float())
+    # def validation_step(self, batch, batch_idx):
+    #     x, y = batch
+    #     logits = self(x)
+    #     loss = self.mse_loss_func(logits, y.float())
         
-        self.log("val_loss", loss)
-        self.log("val_pearson", torchmetrics.functional.pearson_corrcoef(
-            logits.squeeze(), y.squeeze()))
+    #     self.log("val_loss", loss)
+    #     self.log("val_pearson", torchmetrics.functional.pearson_corrcoef(
+    #         logits.squeeze(), y.squeeze()))
 
-        return loss
+    #     return loss
 
     def test_step(self, batch, batch_idx):
         x, y = batch
