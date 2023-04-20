@@ -138,11 +138,11 @@ class Model(pl.LightningModule):
         # 사용할 모델을 호출합니다.
         self.plm = transformers.AutoModelForSequenceClassification.from_pretrained(
             pretrained_model_name_or_path=model_name, num_labels=1, hidden_dropout_prob=hidden_dropout_prob, attention_probs_dropout_prob=attention_probs_dropout_prob)
-        self.num_layers = 1
-        # self.lstm = nn.LSTM(input_size=self.plm.config.hidden_size, hidden_size=self.plm.config.hidden_size, num_layers=self.num_layers, batch_first=True)
-        # self.linear = nn.Linear(self.plm.config.hidden_size, 1) 
-        self.transformer_layer = nn.TransformerEncoder(nn.TransformerEncoderLayer(d_model=self.plm.config.hidden_size, nhead=8), num_layers=1)
+        self.num_layers = 2
+        self.lstm = nn.LSTM(input_size=self.plm.config.hidden_size, hidden_size=self.plm.config.hidden_size, num_layers=self.num_layers, batch_first=True)
         self.linear = nn.Linear(self.plm.config.hidden_size, 1) 
+        # self.transformer_layer = nn.TransformerEncoder(nn.TransformerEncoderLayer(d_model=self.plm.config.hidden_size, nhead=8), num_layers=1)
+        # self.linear = nn.Linear(self.plm.config.hidden_size, 1) 
 
 
         self.mse_loss_func = torch.nn.MSELoss()
