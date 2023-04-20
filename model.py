@@ -141,7 +141,7 @@ class Model(pl.LightningModule):
         self.num_layers = 2
         # self.lstm = nn.LSTM(input_size=self.plm.config.hidden_size, hidden_size=self.plm.config.hidden_size, num_layers=self.num_layers, batch_first=True)
         # self.linear = nn.Linear(self.plm.config.hidden_size, 1) 
-        self.transformer_layer = nn.TransformerEncoder(nn.TransformerEncoderLayer(d_model=self.plm.config.hidden_size, nhead=8), num_layers=2)
+        self.transformer_layer = nn.TransformerEncoder(nn.TransformerEncoderLayer(d_model=self.plm.config.hidden_size, nhead=8), num_layers=1)
         self.linear = nn.Linear(self.plm.config.hidden_size, 1) 
 
 
