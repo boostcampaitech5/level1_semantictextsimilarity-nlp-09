@@ -139,9 +139,9 @@ class Model(pl.LightningModule):
         # 사용할 모델을 호출합니다.
         self.plm = transformers.AutoModelForSequenceClassification.from_pretrained(
             pretrained_model_name_or_path=model_name, num_labels=1, hidden_dropout_prob=hidden_dropout_prob, attention_probs_dropout_prob=attention_probs_dropout_prob)
-        self.num_layers = 2
-        self.lstm = nn.LSTM(input_size=self.plm.config.hidden_size, hidden_size=self.plm.config.hidden_size, num_layers=self.num_layers, batch_first=True)
-        self.linear = nn.Linear(self.plm.config.hidden_size, 1) 
+        # self.num_layers = 2
+        # self.lstm = nn.LSTM(input_size=self.plm.config.hidden_size, hidden_size=self.plm.config.hidden_size, num_layers=self.num_layers, batch_first=True)
+        # self.linear = nn.Linear(self.plm.config.hidden_size, 1)
         # self.transformer_layer = nn.TransformerEncoder(nn.TransformerEncoderLayer(d_model=self.plm.config.hidden_size, nhead=8), num_layers=1)
         # self.linear = nn.Linear(self.plm.config.hidden_size, 1) 
 
@@ -152,6 +152,11 @@ class Model(pl.LightningModule):
         #> 가중치 추가
         self.weight_correlation = 0.7 
         self.weight_mse = 0.3
+        
+    def forward(self, x):
+        x = self.plm(x)['logits']
+
+        return x
 
     def correlation_loss_function(self, x, y):
             x = x - torch.mean(x)
@@ -181,17 +186,17 @@ class Model(pl.LightningModule):
                 logits.squeeze(), y.squeeze()))
             return loss
 ##################################################################################################
-    def forward(self, x):
-        x = x.to(self.device)
-        outputs = self.plm(x, output_hidden_states=True)
-        hidden_states = outputs['hidden_states'][-1]
+    # def forward(self, x):
+    #     x = x.to(self.device)
+    #     outputs = self.plm(x, output_hidden_states=True)
+    #     hidden_states = outputs['hidden_states'][-1]
 
-        lstm_output, _ = self.lstm(hidden_states)
-        cls_lstm_output = lstm_output[:, 0, :]
+    #     lstm_output, _ = self.lstm(hidden_states)
+    #     cls_lstm_output = lstm_output[:, 0, :]
 
-        logits = self.linear(cls_lstm_output)
+    #     logits = self.linear(cls_lstm_output)
 
-        return logits
+    #     return logits
 
     # def forward(self, x):
     #     x = x.to(self.device)
