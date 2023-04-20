@@ -150,7 +150,7 @@ class Model(pl.LightningModule):
 
     #     return x
     def forward(self, x):
-        outputs = self.plm(x)
+        outputs = self.plm(x, output_hidden_states=True)
         hidden_states = outputs['hidden_states'][-1]  # Get the last layer's hidden states
 
         lstm_output, _ = self.lstm(hidden_states)
