@@ -46,7 +46,7 @@ def base_train(train_config, folder_name):
     #     model.log("batch_size", train_config.train.batch_size)
     # else:
     #     model.log("batch_size", sweep_config.batch_size)
-    early_stopping = EarlyStopping(monitor=callback_setting[train_config.callback]["monitor"], min_delta=0.00, patience=3, verbose=False, mode=callback_setting[train_config.callback]["mode"])
+    early_stopping = EarlyStopping(monitor=callback_setting[train_config.callback]["monitor"], patience=5, verbose=False, mode=callback_setting[train_config.callback]["mode"])
     model_checkpoint = ModelCheckpoint(dirpath=train_config.folder_dir, save_top_k=1, monitor=callback_setting[train_config.callback]["monitor"], mode=callback_setting[train_config.callback]["mode"], filename="best")
 
     # gpu가 없으면 accelerator='cpu', 있으면 accelerator='gpu'
