@@ -10,6 +10,7 @@ import torchmetrics
 import pytorch_lightning as pl
 from hanspell import spell_checker
 import re
+from torch.optim.lr_scheduler import ExponentialLR ##추가
 pat = re.compile(r'[@#$%^&*()]')
 
 class Dataset(torch.utils.data.Dataset):
@@ -243,6 +244,15 @@ class Model(pl.LightningModule):
             logits = self(x)
             return logits.squeeze()
 
+    # def configure_optimizers(self):
+    #     optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr)
+    #     return optimizer
+        
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr)
-        return optimizer
+        scheduler = ExponentialLR(optimizer, gamma=0.5)
+
+        return {
+            'optimizer': optimizer,
+            'scheduler': scheduler,
+        }
