@@ -34,6 +34,7 @@ def base_inference(inference_config, folder_name):
     # gpu가 없으면 'gpus=0'을, gpu가 여러개면 'gpus=4'처럼 사용하실 gpu의 개수를 입력해주세요
     trainer = pl.Trainer(accelerator='gpu', max_epochs=inference_config.inference.max_epoch, log_every_n_steps=1)
 
+    print(folder_name)
     model_path = os.path.join(folder_name, 'best.ckpt')
     check_model = model.load_from_checkpoint(model_path)
     # model.load_state_dict(torch.load(model_path))
