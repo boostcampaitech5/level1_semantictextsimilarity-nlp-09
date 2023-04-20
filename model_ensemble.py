@@ -114,7 +114,74 @@ class Dataloader(pl.LightningDataModule):
         return torch.utils.data.DataLoader(self.predict_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
 
 
-class XlmModel(pl.LightningModule):
+class ElectraModel(pl.LightningModule):
+    def __init__(self, model_name, learning_rate, hidden_dropout_prob, attention_probs_dropout_prob):
+        super().__init__()
+        self.save_hyperparameters()
+
+        self.model_name = model_name
+        self.lr = learning_rate
+
+        self.hidden_dropout_prob = hidden_dropout_prob
+        self.attention_probs_dropout_prob = attention_probs_dropout_prob
+
+        # 사용할 모델을 호출합니다.
+        self.plm = transformers.AutoModelForSequenceClassification.from_pretrained(
+            pretrained_model_name_or_path=model_name, num_labels=1, hidden_dropout_prob=hidden_dropout_prob, attention_probs_dropout_prob=attention_probs_dropout_prob)
+        # Loss 계산을 위해 사용될 MSELoss를 호출합니다.
+        self.mse_loss_func = torch.nn.MSELoss()  # mse Loss 값
+        self.mse_loss_l1 = torch.nn.L1Loss()  # L1 Loss 값
+
+    def forward(self, x):
+        x = self.plm(x)['logits']  # [CLS] embedding vector를 반환
+
+        return x
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        logits = self(x)
+        loss = self.mse_loss_func(logits, y.float())
+
+        self.log("train_lossB", loss)
+
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        x, y = batch
+        logits = self(x)
+        loss = self.mse_loss_func(logits, y.float())
+
+        self.log("val_lossB", loss)
+        self.log("val_pearsonB", torchmetrics.functional.pearson_corrcoef(
+            logits.squeeze(), y.squeeze()))
+
+        return loss
+
+    def test_step(self, batch, batch_idx):
+        x, y = batch
+        logits = self(x)
+
+        self.log("test_pearsonA", torchmetrics.functional.pearson_corrcoef(
+            logits.squeeze(), y.squeeze()))
+
+        return logits
+
+    def predict_step(self, batch, batch_idx):
+        if len(batch) == 2:
+            x, _ = batch        # 기존 x, y에서 y는 사용하지 않아 무시처리 하였습니다.
+            logits = self(x)
+            return logits
+        else:
+            x = batch
+            logits = self(x)
+            return logits.squeeze()
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr)
+        return optimizer
+
+
+class KlueModel(pl.LightningModule):
     def __init__(self, model_name, learning_rate, hidden_dropout_prob, attention_probs_dropout_prob):
         super().__init__()
         self.save_hyperparameters()
@@ -181,73 +248,6 @@ class XlmModel(pl.LightningModule):
         return optimizer
 
 
-class KlueModel(pl.LightningModule):
-    def __init__(self, model_name, learning_rate, hidden_dropout_prob, attention_probs_dropout_prob):
-        super().__init__()
-        self.save_hyperparameters()
-
-        self.model_name = model_name
-        self.lr = learning_rate
-
-        self.hidden_dropout_prob = hidden_dropout_prob
-        self.attention_probs_dropout_prob = attention_probs_dropout_prob
-
-        # 사용할 모델을 호출합니다.
-        self.plm = transformers.AutoModelForSequenceClassification.from_pretrained(
-            pretrained_model_name_or_path=model_name, num_labels=1, hidden_dropout_prob=hidden_dropout_prob, attention_probs_dropout_prob=attention_probs_dropout_prob)
-        # Loss 계산을 위해 사용될 MSELoss를 호출합니다.
-        self.mse_loss_func = torch.nn.MSELoss()  # mse Loss 값
-        self.mse_loss_l1 = torch.nn.L1Loss()  # L1 Loss 값
-
-    def forward(self, x):
-        x = self.plm(x)['logits']  # [CLS] embedding vector를 반환
-
-        return x
-
-    def training_step(self, batch, batch_idx):
-        x, y = batch
-        logits = self(x)
-        loss = self.mse_loss_func(logits, y.float())
-
-        self.log("train_lossB", loss)
-
-        return loss
-
-    def validation_step(self, batch, batch_idx):
-        x, y = batch
-        logits = self(x)
-        loss = self.mse_loss_func(logits, y.float())
-
-        self.log("val_lossB", loss)
-        self.log("val_pearsonB", torchmetrics.functional.pearson_corrcoef(
-            logits.squeeze(), y.squeeze()))
-
-        return loss
-
-    def test_step(self, batch, batch_idx):
-        x, y = batch
-        logits = self(x)
-
-        self.log("test_pearsonB", torchmetrics.functional.pearson_corrcoef(
-            logits.squeeze(), y.squeeze()))
-
-        return logits
-
-    def predict_step(self, batch, batch_idx):
-        if len(batch) == 2:
-            x, _ = batch        # 기존 x, y에서 y는 사용하지 않아 무시처리 하였습니다.
-            logits = self(x)
-            return logits
-        else:
-            x = batch
-            logits = self(x)
-            return logits.squeeze()
-
-    def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr)
-        return optimizer
-
-
 class EnsembleModel(pl.LightningModule):
     def __init__(self, modelA_path, modelB_path, modelA_hparams=None, modelB_hparams=None):
         super().__init__()
@@ -256,14 +256,14 @@ class EnsembleModel(pl.LightningModule):
         # 사용할 모델을 호출합니다.
         # If path exists, then load from path else instantiate model using respective hparams
         if modelA_path:
-            self.modelA = XlmModel.load_from_checkpoint(modelA_path)
+            self.modelA = KlueModel.load_from_checkpoint(modelA_path)
         else:
-            self.modelA = XlmModel(**modelA_hparams)
+            self.modelA = KlueModel(**modelA_hparams)
 
         if modelB_path: 
-            self.modelB = KlueModel.load_from_checkpoint(modelB_path)
+            self.modelB = ElectraModel.load_from_checkpoint(modelB_path)
         else:
-            self.modelB = KlueModel(**modelB_hparams)
+            self.modelB = ElectraModel(**modelB_hparams)
 
         self.classifier = torch.nn.Linear(2, 1)
 

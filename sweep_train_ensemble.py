@@ -61,7 +61,7 @@ def ensemble_train():
         sweep_config.attention_probs_dropout_prob,
         )
 
-    modelB = XlmModel(
+    modelB = ElectraModel(
         train_config.model_nameB,
         sweep_config.learning_rate,
         sweep_config.hidden_dropout_prob,
@@ -75,10 +75,10 @@ def ensemble_train():
                          logger = wandb_logger,
                          default_root_dir = train_config.folder_dir,
                          callbacks=[
-                             EarlyStopping(monitor=callback_ensemble_setting[train_config.callback]["monitor"], min_delta=0.00,
-                                           patience=3, verbose=False, mode=callback_ensemble_setting[train_config.callback]["mode"]),
-                             ModelCheckpoint(dirpath=train_config.folder_dir, save_top_k=3, monitor=callback_ensemble_setting[train_config.callback][
-                                             "monitor"], mode=callback_ensemble_setting[train_config.callback]["mode"], filename="{epoch}-{step}-{val_pearson}", ),
+                             EarlyStopping(monitor=callbackA_setting[train_config.callback]["monitor"], min_delta=0.00,
+                                           patience=3, verbose=False, mode=callbackA_setting[train_config.callback]["mode"]),
+                             ModelCheckpoint(dirpath=train_config.folder_dir, save_top_k=3, monitor=callbackA_setting[train_config.callback][
+                                             "monitor"], mode=callbackA_setting[train_config.callback]["mode"], filename="{epoch}-{step}-{val_pearson}", ),
                              ],
                          )
     
@@ -93,10 +93,10 @@ def ensemble_train():
                                   logger=wandb_logger,
                                   default_root_dir=train_config.folder_dir,
                                   callbacks=[
-                                      EarlyStopping(monitor=callback_ensemble_setting[train_config.callback]["monitor"], min_delta=0.00,
-                                                    patience=3, verbose=False, mode=callback_ensemble_setting[train_config.callback]["mode"]),
-                                      ModelCheckpoint(dirpath=train_config.folder_dir, save_top_k=3, monitor=callback_ensemble_setting[train_config.callback][
-                                          "monitor"], mode=callback_ensemble_setting[train_config.callback]["mode"], filename="{epoch}-{step}-{val_pearson}", ),
+                                      EarlyStopping(monitor=callbackB_setting[train_config.callback]["monitor"], min_delta=0.00,
+                                                    patience=3, verbose=False, mode=callbackB_setting[train_config.callback]["mode"]),
+                                      ModelCheckpoint(dirpath=train_config.folder_dir, save_top_k=3, monitor=callbackB_setting[train_config.callback][
+                                          "monitor"], mode=callbackB_setting[train_config.callback]["mode"], filename="{epoch}-{step}-{val_pearson}", ),
                                   ],
                                   )
 

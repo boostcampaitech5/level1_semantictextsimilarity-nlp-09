@@ -5,16 +5,18 @@ metric :
 parameters : 
   batch_size : 
     values :
-      - 4
+      # - 4
       - 8
       # - 16
   max_epoch : 
     values :
-      - 100
+      - 15
   learning_rate : 
-    distribution: "uniform"  
-    min : 1e-6      
-    max : 5e-6
+    # distribution: "uniform"  
+    # min : 1e-6      
+    # max : 5e-6
+    values :
+      - 0.000004044712962140626
   shuffle : 
     values : 
       - True
@@ -23,12 +25,16 @@ parameters :
       - True
   num_workers :
     values :
-      - 8
+      - 16
   hidden_dropout_prob :
-    distribution: "uniform"  
-    min : 0.0   
-    max : 0.3
+    # distribution: "uniform"  
+    # min : 0.0   
+    # max : 0.3
+    values : 
+      - 0.08718024404205035
   attention_probs_dropout_prob:
-    distribution: "uniform"  
-    min : 0.0   
-    max : 0.3
+    # distribution: "uniform"  
+    # min : 0.0   
+    # max : 0.3
+    values :
+      - 0.24171740782584733

@@ -9,7 +9,8 @@ from constants import CONFIG
 from constants import WANDB
 
 from train import base_train
-from sweep_train import sweep_train
+# from sweep_train import sweep_train
+from sweep_train_ensemble import ensemble_train
 from inference import base_inference
 from utils.log import make_log_dirs
 from utils.config import load_config, load_omegaconf
@@ -54,9 +55,9 @@ if __name__ == '__main__':
         )
         wandb.agent(
             sweep_id=sweep_id,          # sweep의 정보를 입력하고
-            function=sweep_train,       # 해당 코드를
+            function=ensemble_train,       # 해당 코드를
             project='boostcamp_STS',
-            count=5                     # 총 n회 실행해봅니다.
+            count=1                     # 총 n회 실행해봅니다.
         )
 
         base_inference(config)

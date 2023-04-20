@@ -4,9 +4,7 @@ import torch
 import pytorch_lightning as pl
 
 from constants import CONFIG
-from model import Dataloader, Model
-
-from model import Dataloader, Dataset, Model
+from model_ensemble import *
 
 def base_inference(inference_config):
     # 하이퍼 파라미터 등 각종 설정값을 입력받습니다
@@ -24,7 +22,7 @@ def base_inference(inference_config):
         inference_config.path.dev_path,
         inference_config.path.predict_path,
         )
-    model = Model(
+    model = EnsembleModel(
         inference_config.model_name,
         inference_config.train.learning_rate,
         inference_config.train.hidden_dropout_prob,

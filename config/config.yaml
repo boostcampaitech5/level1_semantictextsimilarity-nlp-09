@@ -1,7 +1,7 @@
-model_nameA : "klue/roberta-base"
-model_nameB : "xlm-roberta-base"
-ensemble_model_name : "klue/roberta-base"
-model_name : "xlm-roberta-base"
+model_nameA : "klue/roberta-large"
+model_nameB : "monologg/koelectra-base-v3-discriminator"
+ensemble_model_name : "klue/roberta-large"
+model_name : "xlm-roberta-large"
 seed : 42
 callback : "val_pearson"
 
