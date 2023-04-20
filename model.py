@@ -140,6 +140,7 @@ class Model(pl.LightningModule):
         self.num_layers = 1
         self.lstm = nn.LSTM(input_size=self.plm.config.hidden_size, hidden_size=self.plm.config.hidden_size, num_layers=self.num_layers, batch_first=True)
         self.gru = nn.GRU(input_size=self.plm.config.hidden_size, hidden_size=self.plm.config.hidden_size, num_layers=self.num_layers, batch_first=True)
+        self.linear = nn.Linear(self.plm.config.hidden_size * 2, 1)
         # Loss 계산을 위해 사용될 MSELoss를 호출합니다.
         self.mse_loss_func = torch.nn.MSELoss()  # mse Loss 값
         self.mse_loss_l1 = torch.nn.L1Loss()  # L1 Loss 값
@@ -151,17 +152,16 @@ class Model(pl.LightningModule):
     def forward(self, x):
         x = x.to(self.device)
         outputs = self.plm(x, output_hidden_states=True)
-        hidden_states = outputs['hidden_states'][-1]  # Get the last layer's hidden states
+        hidden_states = outputs['hidden_states'][-1]
 
         lstm_output, _ = self.lstm(hidden_states)
-        cls_lstm_output = lstm_output[:, 0, :]  # Get the [CLS] token's output from LSTM
+        cls_lstm_output = lstm_output[:, 0, :]
 
         gru_output, _ = self.gru(hidden_states)
-        cls_gru_output = gru_output[:, 0, :]  # Get the [CLS] token's output from GRU
+        cls_gru_output = gru_output[:, 0, :]
 
-        # Combine the outputs (e.g., concatenate, add or average them) and pass them through a linear layer for classification
         combined_output = torch.cat((cls_lstm_output, cls_gru_output), dim=-1)
-        logits = nn.Linear(self.plm.config.hidden_size * 2, 1)(combined_output)
+        logits = self.linear(combined_output)  # Change this line
 
         return logits
 
