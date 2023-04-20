@@ -149,28 +149,28 @@ class Model(pl.LightningModule):
         self.mse_loss_l1 = torch.nn.L1Loss()
 
 
-    # def forward(self, x):
-    #     x = x.to(self.device)
-    #     outputs = self.plm(x, output_hidden_states=True)
-    #     hidden_states = outputs['hidden_states'][-1]
-
-    #     lstm_output, _ = self.lstm(hidden_states)
-    #     cls_lstm_output = lstm_output[:, 0, :]
-
-    #     logits = self.linear(cls_lstm_output)
-
-    #     return logits
     def forward(self, x):
         x = x.to(self.device)
         outputs = self.plm(x, output_hidden_states=True)
         hidden_states = outputs['hidden_states'][-1]
 
-        transformer_output = self.transformer_layer(hidden_states)
-        cls_transformer_output = transformer_output[:, 0, :]
+        lstm_output, _ = self.lstm(hidden_states)
+        cls_lstm_output = lstm_output[:, 0, :]
 
-        logits = self.linear(cls_transformer_output)
+        logits = self.linear(cls_lstm_output)
 
         return logits
+    # def forward(self, x):
+    #     x = x.to(self.device)
+    #     outputs = self.plm(x, output_hidden_states=True)
+    #     hidden_states = outputs['hidden_states'][-1]
+
+    #     transformer_output = self.transformer_layer(hidden_states)
+    #     cls_transformer_output = transformer_output[:, 0, :]
+
+    #     logits = self.linear(cls_transformer_output)
+
+    #     return logits
 
     def training_step(self, batch, batch_idx):
         x, y = batch
