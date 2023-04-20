@@ -1,24 +1,27 @@
-model_name : "klue/roberta-small"
+model_name : "snunlp/KR-ELECTRA-discriminator"
 seed : 42
 callback : "val_pearson"
+loss : "CorLoss"
 
 train :
-    batch_size : 16
-    max_epoch : 1
+    batch_size : 32
+    max_epoch : 5
     shuffle : True
-    learning_rate : 1e-5
+    learning_rate : 3e-5
     sweep : False
-    num_workers : 8
+    multi : True
+    num_workers : 1
     hidden_dropout_prob : 0.0
     attention_probs_dropout_prob: 0.0
 
 inference :
-    batch_size : 16
+    batch_size : 32
     max_epoch : 1
     shuffle : True
-    learning_rate : 1e-5
-    sweep : False
-    num_workers : 8
+    learning_rate : 3e-5
+    sweep : True
+    multi : True
+    num_workers : 1
     hidden_dropout_prob : 0.0
     attention_probs_dropout_prob: 0.0
 
