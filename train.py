@@ -47,7 +47,7 @@ def base_train(train_config, folder_name):
     # else:
     #     model.log("batch_size", sweep_config.batch_size)
     early_stopping = EarlyStopping(monitor=callback_setting[train_config.callback]["monitor"], min_delta=0.00, patience=3, verbose=False, mode=callback_setting[train_config.callback]["mode"])
-    model_checkpoint = ModelCheckpoint(dirpath=train_config.folder_dir, save_top_k=1, monitor=callback_setting[train_config.callback]["monitor"], mode=callback_setting[train_config.callback]["mode"], filename="{epoch}-{step}-{val_pearson}")
+    model_checkpoint = ModelCheckpoint(dirpath=train_config.folder_dir, save_top_k=1, monitor=callback_setting[train_config.callback]["monitor"], mode=callback_setting[train_config.callback]["mode"], filename="best")
 
     # gpu가 없으면 accelerator='cpu', 있으면 accelerator='gpu'
     trainer = pl.Trainer(accelerator = 'gpu',
@@ -63,13 +63,14 @@ def base_train(train_config, folder_name):
     trainer.test(model=model, datamodule=dataloader)
 
     # best model pick up
-    best_model_path = model_checkpoint.best_model_path
+    
+    best_model_path = os.path.join(train_config.folder_dir, 'best.ckpt')
     best_model = model.load_from_checkpoint(best_model_path)
 
     # best_model.load_state_dict(torch.load(best_model_path))
 
     # 배치로 구성된 예측값을 합칩니다.
-    results = trainer.predict(model=check_model, datamodule=dataloader)
+    results = trainer.predict(model=best_model, datamodule=dataloader)
     test_pred = torch.cat(results)
 
     # 테스트로 확인한 데이터 중 절댓값이 1.0 이상 차이나는 경우를 기록
