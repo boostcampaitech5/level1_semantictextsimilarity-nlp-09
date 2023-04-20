@@ -8,7 +8,7 @@ from model import Dataloader, Model
 
 from model import Dataloader, Dataset, Model
 
-def base_inference(inference_config):
+def base_inference(inference_config, folder_name):
     # 하이퍼 파라미터 등 각종 설정값을 입력받습니다
     # 터미널 실행 예시 : python3 run.py --batch_size=64 ...
     # 실행 시 '--batch_size=64' 같은 인자를 입력하지 않으면 default 값이 기본으로 실행됩니다
@@ -34,7 +34,7 @@ def base_inference(inference_config):
     # gpu가 없으면 'gpus=0'을, gpu가 여러개면 'gpus=4'처럼 사용하실 gpu의 개수를 입력해주세요
     trainer = pl.Trainer(accelerator='gpu', max_epochs=inference_config.inference.max_epoch, log_every_n_steps=1)
 
-    model_path = os.path.join(inference_config.train.folder_dir, 'best.ckpt')
+    model_path = os.path.join(folder_name, 'best.ckpt')
     check_model = model.load_from_checkpoint(model_path)
     # model.load_state_dict(torch.load(model_path))
 
