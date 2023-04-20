@@ -174,6 +174,7 @@ class Model(pl.LightningModule):
 
         gru_output, _ = self.gru(hidden_states)
         cls_gru_output = gru_output[:, 0, :]
+        cls_gru_output = cls_gru_output.view(-1, self.plm.config.hidden_size)
 
         logits = self.linear(gru_output)
 
