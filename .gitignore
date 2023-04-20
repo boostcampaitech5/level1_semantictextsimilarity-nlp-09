@@ -10,6 +10,7 @@ keys.json
 
 # my_log에 있는 파일을 관리하지 않음
 /my_log/*
+/data
+/EDA
 
-*.csv
 *.ckpt
