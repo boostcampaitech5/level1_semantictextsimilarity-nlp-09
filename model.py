@@ -132,14 +132,17 @@ class Model(pl.LightningModule):
             attention_probs_dropout_prob=attention_probs_dropout_prob,
             output_hidden_states=True, ## 추가
             # num_labels=1
-        ) 
+        )
         
         ## 추가할 모델 정의
         # 마지막 1부분을 수정하면, linear모델도 쌓을 수 있습니다 self.linear = torch.nn.Linear(self.plm.config.hidden_size, self.plm.config.hidden_size)
         self.linear = torch.nn.Linear(self.plm.config.hidden_size, 1)
         # https://pytorch.org/docs/stable/generated/torch.nn.LSTM.html#torch.nn.LSTM 참고
         # num_layers로 layer수를 지정해 주세요!
-        self.lstm = torch.nn.LSTM(self.plm.config.hidden_size, self.plm.config.hidden_size, num_layers=3, bidirectional=False, batch_first=True)
+        self.lstm = torch.nn.LSTM(self.plm.config.hidden_size, self.plm.config.hidden_size, num_layers=2, bidirectional=False, batch_first=True)
+        ## dropout 확률을 설정해 주세요
+        self.dropout = torch.nn.Dropout(p=0.1)
+        
         
         # Loss 계산을 위해 사용될 MSELoss를 호출합니다.
         self.mse_loss_func = torch.nn.MSELoss()  # mse Loss 값
@@ -151,22 +154,37 @@ class Model(pl.LightningModule):
         # plm_logits = plm_outputs.logits # [CLS] embedding vector를 반환
         last_hidden_state = plm_outputs.hidden_states[-1]
         cls_hidden_state = last_hidden_state[:, 0, :] ## 마지막 hiddens state에서 CLS토큰을 가져옴
-        # last_hidden_state = plm_outputs.last_hidden_state[:, 0, :]
         
-        ## 이부분을 선택해서 변경해 주셔야 합니다!
-        ## lstm 예시
+        ## 이부분을 선택해서 변경해 주셔야 합니다! (lstm 예시)
+        ## 현제 CLS토큰만 받아서 사용하고 있습니다.
         lstm_outputs, _ = self.lstm(cls_hidden_state.unsqueeze(1)) # 차원을 맞추기 위해.. cls_hidden_state = (batch_size, hidden_size) -> (batch_size, 1, hidden_size)
         lstm_last_hidden_state = lstm_outputs[:,-1,:]
         output = self.linear(lstm_last_hidden_state)
+        
         return output
 
     def training_step(self, batch, batch_idx):
         x, y = batch
-        logits = self(x)
+        plm_outputs = self.plm(x)
+        last_hidden_state = plm_outputs.hidden_states[-1]
+        origin_cls_hidden_state = last_hidden_state[:, 0, :] ## 마지막 hiddens state에서 CLS토큰을 가져옴
+        
+        ## CLS 토큰에 dropout적용 -> CLS 토큰은 문장의 정보를 담고 있는데, 이것에 살짝의 손상을 가해서 Data를 증강
+        ### dropout이 적용된 cls토큰을 연결해서 데이터를 증강했습니다.
+        drop_out_cls_hidden_state = self.dropout(origin_cls_hidden_state)
+        cls_hidden_state = torch.cat((origin_cls_hidden_state, drop_out_cls_hidden_state), 0) # (batch_size, hidden_size) -> (2*batch_size, hidden_size)
+        
+        ## lstm layer
+        lstm_outputs, _ = self.lstm(cls_hidden_state.unsqueeze(1)) # 차원을 맞추기 위해.. cls_hidden_state = (batch_size, hidden_size) -> (batch_size, 1, hidden_size)
+        lstm_last_hidden_state = lstm_outputs[:,-1,:]
+        logits = self.linear(lstm_last_hidden_state)
+        
+        ## 비율 y = torch.cat((y, 조건에 맞는 y), 0) y ->32 / 16 조건에 맞는 cls_토큰6 ->
+        
+        y = torch.cat((y, y), 0) ## logits은 현제, dropout된 cls_hidden_state값도 받고 있으므로 (2*batch_size, hidden_size)
         loss = self.mse_loss_func(logits, y.float())
         
         self.log("train_loss", loss)
-
         return loss
 
     def validation_step(self, batch, batch_idx):

@@ -1,4 +1,4 @@
-model_name : "klue/roberta-small"
+model_name : "klue/roberta-base"
 seed : 42
 callback : "val_pearson"
 
@@ -19,8 +19,8 @@ inference :
     learning_rate : 1e-5
     sweep : False
     num_workers : 8
-    hidden_dropout_prob : 0
-    attention_probs_dropout_prob: 0
+    hidden_dropout_prob : 0.0
+    attention_probs_dropout_prob: 0.0
 
 path : 
     train_path: "./data/train.csv"
