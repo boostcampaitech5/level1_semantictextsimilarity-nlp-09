@@ -3,7 +3,7 @@ seed : 42
 callback : "val_pearson"
 
 train :
-    batch_size : 64
+    batch_size : 32
     max_epoch : 50
     shuffle : True
     learning_rate : 3e-5
@@ -13,7 +13,7 @@ train :
     attention_probs_dropout_prob: 0.0
 
 inference :
-    batch_size : 64
+    batch_size : 32
     max_epoch : 1
     shuffle : False
     learning_rate : 1e-5
