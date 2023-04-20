@@ -1,7 +1,7 @@
 import pandas as pd
 
 from tqdm.auto import tqdm
-
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:100'
 import transformers
 import torch
 import torch.nn as nn
@@ -161,7 +161,7 @@ class Model(pl.LightningModule):
         cls_gru_output = gru_output[:, 0, :]
 
         combined_output = torch.cat((cls_lstm_output, cls_gru_output), dim=-1)
-        logits = self.linear(combined_output)  # Change this line
+        logits = self.linear(combined_output)
 
         return logits
 
