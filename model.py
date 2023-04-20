@@ -6,6 +6,10 @@ import transformers
 import torch
 import torchmetrics
 import pytorch_lightning as pl
+import os
+
+from utils.config import load_config, load_omegaconf
+from constants import CONFIG
 
 
 class Dataset(torch.utils.data.Dataset):
@@ -139,6 +143,11 @@ class Model(pl.LightningModule):
     
         self.mse_loss_func = torch.nn.MSELoss()  # mse Loss 값
         self.mse_loss_l1 = torch.nn.L1Loss()  # L1 Loss 값
+        
+        self.weight_correlation = 0.7
+        self.weight_mse = 0.3
+
+        self.best_metric = -1
     
     
     # 각 구간별 가중치를 계산하는 함수
@@ -166,16 +175,41 @@ class Model(pl.LightningModule):
         mse = torch.mean(bin_weights * (y_true - y_pred) ** 2) 
         return mse
 
+    # correlation_loss function
+    '''
+    def correlation_loss(self, y_pred, y_true):
+        x = y_pred.clone()
+        y = y_true.clone()
+        vx = x - torch.mean(x)
+        vy = y - torch.mean(y)
+        cov = torch.sum(vx * vy)
+        corr = cov / (torch.sqrt(torch.sum(vx ** 2)) * torch.sqrt(torch.sum(vy ** 2)) + 1e-12)
+        corr = torch.maximum(torch.minimum(corr,torch.tensor(1)), torch.tensor(-1))
+        return torch.sub(torch.tensor(1), corr ** 2)
+    '''
+    def correlation_loss_function(self, x, y):
+        x = x - torch.mean(x)
+        y = y - torch.mean(y)
+        x = x / (torch.sqrt(torch.sum(torch.square(x))) + 1e-5)
+        y = y / (torch.sqrt(torch.sum(torch.square(y))) + 1e-5)
+        corr = torch.mean(torch.mul(x, y))
+        return 1 - corr
+    
     def forward(self, x):
-        x = self.plm(x)['logits']  # [CLS] embedding vector를 반환
+        #x = self.plm(x)['logits']  # [CLS] embedding vector를 반환
+        output = self.plm(x)
+        x = output['logits']
+        print(f'output : {output}')
+        print(f'logits : {x}')
 
         return x
 
     def training_step(self, batch, batch_idx):
         x, y = batch
         logits = self(x)
-        loss = self.mse_loss_func(logits, y.float())
-        
+        mse_loss = self.mse_loss_func(logits, y.float())
+        correlation_loss = self.correlation_loss_function(logits, y.float())
+        loss = (self.weight_correlation * correlation_loss) + (self.weight_mse * mse_loss)
         self.log("train_loss", loss)
 
         return loss
@@ -183,14 +217,39 @@ class Model(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x, y = batch
         logits = self(x)
-        loss = self.mse_loss_func(logits, y.float())
-        
+        mse_loss = self.mse_loss_func(logits, y.float())
+        correlation_loss = self.correlation_loss_function(logits, y.float())
+        loss = (self.weight_correlation * correlation_loss) + (self.weight_mse * mse_loss)
+             
         self.log("val_loss", loss)
         self.log("val_pearson", torchmetrics.functional.pearson_corrcoef(
             logits.squeeze(), y.squeeze()))
 
         return loss
-
+    
+    # 가장 val_pearson이 높은 모델 저장
+    '''
+    def validation_step(self, batch, batch_idx):
+        x, y = batch
+        logits = self(x)
+        mse_loss = self.mse_loss_func(logits, y.float())
+        correlation_loss = self.correlation_loss_function(logits, y.float())
+        loss = (self.weight_correlation * correlation_loss) + (self.weight_mse * mse_loss)
+        val_pearson = torchmetrics.functional.pearson_corrcoef(logits.squeeze(), y.squeeze())
+             
+        self.log("val_loss", loss)
+        self.log("val_pearson", val_pearson)
+        
+        metric = val_pearson
+        
+        if metric > self.best_metric:       #현재 mean dice result가 가장 좋다면 best_metric으로 저장
+            self.best_metric = metric
+            config = load_omegaconf()
+            config.folder_dir = folder_name
+            folder_name = make_log_dirs(CONFIG.LOGDIR_PATH)
+            torch.save(self.save_hyperparameters(), os.path.join(config.folder_dir, 'model.pt'))
+        return loss    
+    '''
     def test_step(self, batch, batch_idx):
         x, y = batch
         logits = self(x)
