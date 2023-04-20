@@ -43,7 +43,7 @@ if __name__ == '__main__':
     ## config의 sweep 사용 여부에 따라 sweep config 설정 판단
     if not config.train.sweep:        
         base_train(config, folder_name)
-        base_inference(config)
+        base_inference(config, folder_name)
     else:
         sweep_config = load_config(WANDB.CONFIG_PATH)  
         sweep_id = wandb.sweep(
