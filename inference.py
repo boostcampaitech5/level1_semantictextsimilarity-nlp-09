@@ -7,6 +7,7 @@ from constants import CONFIG
 from model import Dataloader, Model
 
 from model import Dataloader, Dataset, Model
+from utils.eda import get_vocab_data
 
 def base_inference(inference_config):
     # 하이퍼 파라미터 등 각종 설정값을 입력받습니다
@@ -26,17 +27,22 @@ def base_inference(inference_config):
         )
     model = Model(
         inference_config.model_name,
+        inference_config.loss,
         inference_config.train.learning_rate,
+        inference_config.train.multi,
         inference_config.train.hidden_dropout_prob,
         inference_config.train.attention_probs_dropout_prob,
         )
 
-    # gpu가 없으면 'gpus=0'을, gpu가 여러개면 'gpus=4'처럼 사용하실 gpu의 개수를 입력해주세요
-    trainer = pl.Trainer(accelerator='gpu', max_epochs=inference_config.inference.max_epoch, log_every_n_steps=1)
-
     # Inference part
     # 저장된 모델로 예측을 진행합니다.
+    dataloader.tokenizer.add_tokens(get_vocab_data())
+    model.plm.resize_token_embeddings(len(dataloader.tokenizer))
     model = torch.load(os.path.join(inference_config.folder_dir, CONFIG.MODEL_NAME))
+    
+    # gpu가 없으면 'gpus=0'을, gpu가 여러개면 'gpus=4'처럼 사용하실 gpu의 개수를 입력해주세요
+    trainer = pl.Trainer(accelerator='gpu', max_epochs=inference_config.inference.max_epoch, log_every_n_steps=1)
+    
     predictions = trainer.predict(model=model, datamodule=dataloader)
 
     # 예측된 결과를 형식에 맞게 반올림하여 준비합니다.
