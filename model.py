@@ -9,7 +9,7 @@ import torchmetrics
 import pytorch_lightning as pl
 from hanspell import spell_checker
 import re
-
+pat = re.compile(r'[@#$%^&*()]')
 
 class Dataset(torch.utils.data.Dataset):
     def __init__(self, inputs, targets=[]):
@@ -55,7 +55,6 @@ class Dataloader(pl.LightningDataModule):
     
 
     def pre(self, text):
-        pat = re.compile(r'[@#$%^&*()]')
         re_text = pat.sub('', text)
         result = spell_checker.check(re_text)
         return result.checked.strip()
