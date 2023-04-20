@@ -138,7 +138,7 @@ class Model(pl.LightningModule):
         self.plm = transformers.AutoModelForSequenceClassification.from_pretrained(
             pretrained_model_name_or_path=model_name, num_labels=1, hidden_dropout_prob=hidden_dropout_prob, attention_probs_dropout_prob=attention_probs_dropout_prob)
         self.num_layers = 1
-        self.lstm = nn.LSTM(input_size=self.plm.config.hidden_size, hidden_size=self.plm.config.hidden_size, num_layers=self.num_layers, batch_first=True)
+        # self.lstm = nn.LSTM(input_size=self.plm.config.hidden_size, hidden_size=self.plm.config.hidden_size, num_layers=self.num_layers, batch_first=True)
         self.gru = nn.GRU(input_size=self.plm.config.hidden_size, hidden_size=self.plm.config.hidden_size, num_layers=self.num_layers, batch_first=True)
         self.linear = nn.Linear(self.plm.config.hidden_size * 2, 1)
         # Loss 계산을 위해 사용될 MSELoss를 호출합니다.
@@ -149,19 +149,32 @@ class Model(pl.LightningModule):
     #     x = self.plm(x)['logits']  # [CLS] embedding vector를 반환
 
     #     return x
+
+    # def forward(self, x):
+    #     x = x.to(self.device)
+    #     outputs = self.plm(x, output_hidden_states=True)
+    #     hidden_states = outputs['hidden_states'][-1]
+
+    #     lstm_output, _ = self.lstm(hidden_states)
+    #     cls_lstm_output = lstm_output[:, 0, :]
+
+    #     gru_output, _ = self.gru(hidden_states)
+    #     cls_gru_output = gru_output[:, 0, :]
+
+    #     combined_output = torch.cat((cls_lstm_output, cls_gru_output), dim=-1)
+    #     logits = self.linear(combined_output)
+
+    #     return logits
+
     def forward(self, x):
         x = x.to(self.device)
         outputs = self.plm(x, output_hidden_states=True)
         hidden_states = outputs['hidden_states'][-1]
 
-        lstm_output, _ = self.lstm(hidden_states)
-        cls_lstm_output = lstm_output[:, 0, :]
-
         gru_output, _ = self.gru(hidden_states)
         cls_gru_output = gru_output[:, 0, :]
 
-        combined_output = torch.cat((cls_lstm_output, cls_gru_output), dim=-1)
-        logits = self.linear(combined_output)
+        logits = self.linear(gru_output)
 
         return logits
 
