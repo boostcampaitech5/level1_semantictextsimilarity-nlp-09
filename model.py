@@ -6,6 +6,8 @@ import transformers
 import torch
 import torchmetrics
 import pytorch_lightning as pl
+from hanspell import spell_checker
+import re
 
 
 class Dataset(torch.utils.data.Dataset):
@@ -49,12 +51,19 @@ class Dataloader(pl.LightningDataModule):
         self.target_columns = ['label']
         self.delete_columns = ['id']
         self.text_columns = ['sentence_1', 'sentence_2']
+    
+
+    def pre(self, text):
+        pat = re.compile(r'[@#$%^&*()]')
+        re_text = pat.sub('', text)
+        result = spell_checker.check(re_text)
+        return result.checked.strip()
 
     def tokenizing(self, dataframe):
         data = []
         for idx, item in tqdm(dataframe.iterrows(), desc='tokenizing', total=len(dataframe)):
             # 두 입력 문장을 [SEP] 토큰으로 이어붙여서 전처리합니다.
-            text = '[SEP]'.join([item[text_column]
+            text = '[SEP]'.join([self.pre(item[text_column])
                                 for text_column in self.text_columns])
             outputs = self.tokenizer(
                 text, add_special_tokens=True, padding='max_length', truncation=True)
