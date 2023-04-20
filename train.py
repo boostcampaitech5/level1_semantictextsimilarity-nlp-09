@@ -11,6 +11,8 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from model import Dataloader, Dataset, Model
 from constants import CONFIG
 from utils.wandb import *
+from glob import glob
+
 
 callback_setting = {
     "val_loss": {"monitor": "val_loss", "mode": "min"},
@@ -63,9 +65,20 @@ def base_train(train_config, folder_name):
     trainer.fit(model=model, datamodule=dataloader)
     trainer.test(model=model, datamodule=dataloader)
 
+    # Save the best model
+    ## 모든 .ckpt 확장자를 가진 파일을 가져옵니다.
+    ckpt_files = glob(os.path.join(train_config.folder_dir, '*.ckpt'))
+
+    ## 파일 이름에서 'val_pearson' 값을 가져오고, 그 값이 가장 높은 파일을 가져옵니다.
+    best_ckpt = max(ckpt_files, key=lambda x: float(x.split('val_pearson=')[-1].replace('.ckpt', '')))
+
+    ## 모델을 불러옵니다.
+    model = model.load_from_checkpoint(checkpoint_path=best_ckpt)
+    
     # 배치로 구성된 예측값을 합칩니다.
     results = trainer.predict(model=model, datamodule=dataloader)
     test_pred = torch.cat(results)
+    
 
     # 테스트로 확인한 데이터 중 절댓값이 1.0 이상 차이나는 경우를 기록
     wrongs = []
