@@ -127,8 +127,8 @@ class Model(pl.LightningModule):
 
         # 사용할 모델을 호출합니다.
         self.plm = transformers.AutoModelForSequenceClassification.from_pretrained(
-            pretrained_model_name_or_path=model_name, 
-            hidden_dropout_prob=hidden_dropout_prob, 
+            pretrained_model_name_or_path=model_name,
+            hidden_dropout_prob=hidden_dropout_prob,
             attention_probs_dropout_prob=attention_probs_dropout_prob,
             output_hidden_states=True, ## 추가
             # num_labels=1
@@ -141,7 +141,7 @@ class Model(pl.LightningModule):
         # num_layers로 layer수를 지정해 주세요!
         self.lstm = torch.nn.LSTM(self.plm.config.hidden_size, self.plm.config.hidden_size, num_layers=2, bidirectional=False, batch_first=True)
         ## dropout 확률을 설정해 주세요
-        self.dropout = torch.nn.Dropout(p=0.1)
+        self.dropout = torch.nn.Dropout(p=0.2)
         
         
         # Loss 계산을 위해 사용될 MSELoss를 호출합니다.
@@ -178,8 +178,6 @@ class Model(pl.LightningModule):
         lstm_outputs, _ = self.lstm(cls_hidden_state.unsqueeze(1)) # 차원을 맞추기 위해.. cls_hidden_state = (batch_size, hidden_size) -> (batch_size, 1, hidden_size)
         lstm_last_hidden_state = lstm_outputs[:,-1,:]
         logits = self.linear(lstm_last_hidden_state)
-        
-        ## 비율 y = torch.cat((y, 조건에 맞는 y), 0) y ->32 / 16 조건에 맞는 cls_토큰6 ->
         
         y = torch.cat((y, y), 0) ## logits은 현제, dropout된 cls_hidden_state값도 받고 있으므로 (2*batch_size, hidden_size)
         loss = self.mse_loss_func(logits, y.float())
