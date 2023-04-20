@@ -42,7 +42,7 @@ if __name__ == '__main__':
         base_train(config, folder_name)
         base_inference(config)
     else:
-        sweep_config = load_config(WANDB.CONFIG_PATH)  
+        sweep_config = load_config(WANDB.CONFIG_PATH)
         sweep_id = wandb.sweep(
             sweep=sweep_config,         # config 딕셔너리를 추가합니다.
             project='boostcamp_STS'     # project의 이름을 추가합니다.
