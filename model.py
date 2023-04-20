@@ -4,6 +4,7 @@ from tqdm.auto import tqdm
 
 import transformers
 import torch
+import torch.nn as nn
 import torchmetrics
 import pytorch_lightning as pl
 from hanspell import spell_checker
