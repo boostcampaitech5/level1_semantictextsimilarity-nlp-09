@@ -130,6 +130,12 @@ class Model(pl.LightningModule):
         self.model_name = model_name
         self.lr = learning_rate
 
+        ## 누적을 위해 추가
+        self.train_count = 0
+        self.val_count = 0
+        self.acc_loss = 0
+        self.acc_val_loss = 0
+        
         self.hidden_dropout_prob = hidden_dropout_prob
         self.attention_probs_dropout_prob = attention_probs_dropout_prob
 
@@ -172,6 +178,10 @@ class Model(pl.LightningModule):
         return output
 
     def training_step(self, batch, batch_idx):
+        
+        if self.train_count == 0:
+            self.acc_loss = 0
+        
         x, y = batch
         plm_outputs = self.plm(x)
         plm_logits = plm_outputs.logits # [CLS] embedding vector를 반환
@@ -191,11 +201,24 @@ class Model(pl.LightningModule):
         correlation_loss = self.correlation_loss_function(logits, y.float())
         loss = (0.6 * correlation_loss) + (0.4 * mse_loss)
         
-        self.log("train_loss", loss)
-
-        return loss
+        self.acc_loss += loss
+        
+        ## 누적 loss적용
+        self.train_count+=1
+        
+        if self.train_count == 4:
+            self.train_count =0
+            self.log("train_loss", self.acc_loss/4)
+            return self.acc_loss/4
+        else:
+            return None
+        
 
     def validation_step(self, batch, batch_idx):
+        
+        if self.val_count == 0:
+            self.acc_val_loss = 0
+        
         x, y = batch
         logits = self(x)
         
@@ -203,12 +226,17 @@ class Model(pl.LightningModule):
         correlation_loss = self.correlation_loss_function(logits, y.float())
         loss = (0.7 * correlation_loss) + (0.3 * mse_loss)
 
+        self.acc_val_loss += loss
+        self.val_count += 1
         
-        self.log("val_loss", loss)
-        self.log("val_pearson", torchmetrics.functional.pearson_corrcoef(
+        if self.val_count == 4:
+            self.val_count = 0
+            self.log("val_loss", self.acc_val_loss/4)
+            self.log("val_pearson", torchmetrics.functional.pearson_corrcoef(
             logits.squeeze(), y.squeeze()))
-
-        return loss
+            return self.acc_val_loss/4
+        else:
+            return None
 
     def test_step(self, batch, batch_idx):
         x, y = batch
