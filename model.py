@@ -139,7 +139,6 @@ class Model(pl.LightningModule):
         # Weighted MSE Loss
         self.data_counts = [4163, 1372, 1294, 2058 ,987]
         self.weights = self.calculate_weights(self.data_counts)
-        self.loss_func = self.weighted_MSE_loss
         #self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     
         self.mse_loss_func = torch.nn.MSELoss()  # mse Loss 값
@@ -147,7 +146,6 @@ class Model(pl.LightningModule):
         
         self.weight_correlation = 0.7
         self.weight_mse = 0.3
-    
     
     # 각 구간별 가중치를 계산하는 함수
     def calculate_weights(self, bin_counts):
@@ -193,6 +191,7 @@ class Model(pl.LightningModule):
         correlation_loss = self.correlation_loss_function(logits, y.float())
         loss = (self.weight_correlation * correlation_loss) + (self.weight_mse * mse_loss)
         #loss = self.mse_loss_func(logits, y.float())
+        #loss = self.weighted_MSE_loss(logits, y.float())
         self.log("train_loss", loss)
 
         return loss
@@ -204,6 +203,7 @@ class Model(pl.LightningModule):
         correlation_loss = self.correlation_loss_function(logits, y.float())
         loss = (self.weight_correlation * correlation_loss) + (self.weight_mse * mse_loss)
         #loss = self.mse_loss_func(logits, y.float())     
+        #loss = self.weighted_MSE_loss(logits, y.float())
         self.log("val_loss", loss)
         self.log("val_pearson", torchmetrics.functional.pearson_corrcoef(
             logits.squeeze(), y.squeeze()))
