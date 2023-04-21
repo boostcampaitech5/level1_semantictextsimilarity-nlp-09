@@ -7,6 +7,7 @@ import pytorch_lightning as pl
 
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
+from utils.eda import get_vocab_data
 
 from model import Dataloader, Dataset, Model
 from constants import CONFIG
@@ -44,6 +45,9 @@ def base_train(train_config, folder_name):
     
     # log에 batch_size 기록
     model.log("batch_size", train_config.train.batch_size)
+    
+    dataloader.tokenizer.add_tokens(get_vocab_data())
+    model.plm.resize_token_embeddings(len(dataloader.tokenizer))
 
     # gpu가 없으면 accelerator='cpu', 있으면 accelerator='gpu'
     trainer = pl.Trainer(accelerator = 'gpu',

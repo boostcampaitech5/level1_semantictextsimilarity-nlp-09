@@ -36,8 +36,8 @@ def base_inference(inference_config):
 
     # Inference part
     # 저장된 모델로 예측을 진행합니다.
-    # dataloader.tokenizer.add_tokens(get_vocab_data())
-    # model.plm.resize_token_embeddings(len(dataloader.tokenizer))
+    dataloader.tokenizer.add_tokens(get_vocab_data())
+    model.plm.resize_token_embeddings(len(dataloader.tokenizer))
     model = torch.load(os.path.join(inference_config.folder_dir, CONFIG.MODEL_NAME))
     
     # gpu가 없으면 'gpus=0'을, gpu가 여러개면 'gpus=4'처럼 사용하실 gpu의 개수를 입력해주세요
