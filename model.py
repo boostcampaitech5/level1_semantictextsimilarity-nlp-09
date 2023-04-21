@@ -131,7 +131,7 @@ class Model(pl.LightningModule):
             pretrained_model_name_or_path=model_name, num_labels=1, hidden_dropout_prob=hidden_dropout_prob, attention_probs_dropout_prob=attention_probs_dropout_prob)
         
         # Loss 계산을 위해 사용될 MSELoss를 호출합니다.
-        self.loss_func = get_loss_func(loss)
+        self.loss_func = self.get_loss_func(loss)
         
         # multi loss 계산에서 활용할 ratio
         self.weight_correlation = 0.7
@@ -157,11 +157,11 @@ class Model(pl.LightningModule):
         logits = self(x)
         
         if self.multi:
-            mse_loss = self.mse_loss_func(logits, y.float())
+            step_loss = self.loss_func(logits, y.float())
             correlation_loss = self.correlation_loss_function(logits, y.float())
-            loss = (self.weight_correlation * correlation_loss) + (self.weight_mse * mse_loss)
+            loss = (self.weight_correlation * correlation_loss) + (self.weight_mse * step_loss)
         else:
-            loss = self.mse_loss(logits, y.float())
+            loss = self.loss_func(logits, y.float())
             
         self.log("train_loss", loss)
         
@@ -173,11 +173,11 @@ class Model(pl.LightningModule):
         logits = self(x)
         
         if self.multi:
-            mse_loss = self.mse_loss_func(logits, y.float())
+            step_loss = self.loss_func(logits, y.float())
             correlation_loss = self.correlation_loss_function(logits, y.float())
-            loss = (self.weight_correlation * correlation_loss) + (self.weight_mse * mse_loss)
+            loss = (self.weight_correlation * correlation_loss) + (self.weight_mse * step_loss)
         else:
-            loss = self.mse_loss(logits, y.float())
+            loss = self.loss_func(logits, y.float())
             
         self.log("val_loss", loss)
         self.log("val_pearson", torchmetrics.functional.pearson_corrcoef(logits.squeeze(), y.squeeze()))

@@ -35,17 +35,15 @@ def base_train(train_config, folder_name):
     )
     model = Model(
         train_config.model_name,
+        train_config.loss,
         train_config.train.learning_rate,
+        train_config.train.multi,
         train_config.train.hidden_dropout_prob,
         train_config.train.attention_probs_dropout_prob,
         )
     
-    model.log("batch_size", train_config.train.batch_size)
     # log에 batch_size 기록
-    # if sweep_config == None:
-    #     model.log("batch_size", train_config.train.batch_size)
-    # else:
-    #     model.log("batch_size", sweep_config.batch_size)
+    model.log("batch_size", train_config.train.batch_size)
 
     # gpu가 없으면 accelerator='cpu', 있으면 accelerator='gpu'
     trainer = pl.Trainer(accelerator = 'gpu',
@@ -54,7 +52,7 @@ def base_train(train_config, folder_name):
                          logger = wandb_logger,
                          default_root_dir = train_config.folder_dir,
                          callbacks=[
-                             EarlyStopping(monitor=callback_setting[train_config.callback]["monitor"], min_delta=0.00, patience=3, verbose=False, mode=callback_setting[train_config.callback]["mode"], restore_best_weights = True),
+                             EarlyStopping(monitor=callback_setting[train_config.callback]["monitor"], min_delta=0.00, patience=3, verbose=False, mode=callback_setting[train_config.callback]["mode"]),
                              ModelCheckpoint(dirpath=train_config.folder_dir, save_top_k=3, monitor=callback_setting[train_config.callback]["monitor"], mode=callback_setting[train_config.callback]["mode"], filename="{epoch}-{step}-{val_pearson}", ),
                              ],
                          )
