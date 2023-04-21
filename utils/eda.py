@@ -2,6 +2,7 @@ import os
 import pandas as pd
 from tqdm import tqdm
 from collections import defaultdict
+from hanspell import spell_checker
 import math
 
 # 모델의 vocabulary에 추가할 목록 리스트 반환
