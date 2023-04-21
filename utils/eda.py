@@ -8,7 +8,7 @@ import math
 # 모델의 vocabulary에 추가할 목록 리스트 반환
 def get_vocab_data():
     path = "./vocab_data"
-    vacobs = os.listdir(path)
+    vocabs = os.listdir(path)
     
     result = []
     for v in vocabs:
