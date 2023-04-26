@@ -1,4 +1,6 @@
 import yaml
+from omegaconf import OmegaConf
+from constants import CONFIG
 
 class Config():
     def __init__(self, cfg, opt, model_dir):
